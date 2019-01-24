@@ -238,18 +238,13 @@ class CaseExplorer extends Component {
             ])}
           />
         </div>
-        <div className='bb b--black-10 overflow-auto flex-grow flex flex-column bg-very-light-gray pb6'>
-          { !isLoading && caseGrouping.length
-            ? (
-              <UnitGroupList
-                unitGroupList={caseGrouping}
-                creationUrlGenerator={this.createCaseUrlGen}
-                expandedListRenderer={this.expandedCasesRenderer}
-                name={'case'}
-              />
-            ) : (<NoItemMsg item={'case'} iconType={'card_travel'} buttonOption />)
-          }
-        </div>
+        <UnitGroupList
+          unitGroupList={caseGrouping}
+          creationUrlGenerator={this.createCaseUrlGen}
+          expandedListRenderer={this.expandedCasesRenderer}
+          itemType='case'
+          noItemsIconType='card_travel'
+        />
         <div className='absolute right-1 bottom-2'>
           <FloatingActionButton onClick={() => this.setState({ showUnitDialog: true })}>
             <FontIcon className='material-icons'>add</FontIcon>

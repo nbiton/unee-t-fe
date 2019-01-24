@@ -162,18 +162,13 @@ class ReportExplorer extends Component {
               sortBy={sortBy}
             />
           </div>
-          <div className='bb b--black-10 overflow-auto flex-grow flex flex-column bg-very-light-gray pb6'>
-            { reportGrouping.length
-              ? (
-                <UnitGroupList
-                  unitGroupList={reportGrouping}
-                  creationUrlGenerator={this.createReportUrlGen}
-                  expandedListRenderer={this.extendedReportsRenderer}
-                  name={'report'}
-                />
-              ) : (<NoItemMsg item={'report'} iconType={'content_paste'} buttonOption />)
-            }
-          </div>
+          <UnitGroupList
+            unitGroupList={reportGrouping}
+            creationUrlGenerator={this.createReportUrlGen}
+            expandedListRenderer={this.extendedReportsRenderer}
+            itemType='report'
+            noItemsIconType={'content_paste'}
+          />
           <div className='absolute right-1 bottom-2'>
             <FloatingActionButton onClick={() => this.setState({ open: true })}>
               <FontIcon className='material-icons'>add</FontIcon>
