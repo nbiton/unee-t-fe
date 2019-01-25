@@ -20,7 +20,7 @@ export class UnitGroupList extends PureComponent {
     this.calculatedHeights = {}
   }
 
-  handleExpandUnit (evt, { unitTitle, _id, items }) {
+  handleExpandUnit (evt, { unitTitle, bzId, items }) {
     evt.preventDefault()
     const { expandedUnits } = this.state
     let stateMutation
@@ -28,12 +28,12 @@ export class UnitGroupList extends PureComponent {
       stateMutation = {
         expandedUnits: expandedUnits.filter(title => title !== unitTitle)
       }
-      this.calculatedHeights[_id] = UNIT_ROW_HEIGHT
+      this.calculatedHeights[bzId] = UNIT_ROW_HEIGHT
     } else {
       stateMutation = {
         expandedUnits: expandedUnits.concat([unitTitle])
       }
-      this.calculatedHeights[_id] = UNIT_ROW_HEIGHT + (items.length * ITEM_ROW_HEIGHT)
+      this.calculatedHeights[bzId] = UNIT_ROW_HEIGHT + (items.length * ITEM_ROW_HEIGHT)
     }
     this.setState(stateMutation)
   }
@@ -45,6 +45,11 @@ export class UnitGroupList extends PureComponent {
       const scroller = evt.target
       if (!nextFrameRequested) {
         requestAnimationFrame(() => { // The scroll event triggers too often, so throttling is done based on the browser's FPS rate
+          nextFrameRequested = false // releasing the lock for the next scroll event to queue render on the next frame
+
+          const { unitGroupList } = this.props
+          if (!unitGroupList.length) return
+
           // Checking if scrolling close enough to the sensitivity bounds has occurred
           if ((scroller.scrollTop < this.beforeHeight + SCROLL_PADDING) ||
             (scroller.scrollTop + scroller.offsetHeight > this.beforeHeight + this.viewedHeight - SCROLL_PADDING)) {
@@ -52,17 +57,15 @@ export class UnitGroupList extends PureComponent {
             let requestedBeforeHeight = scroller.scrollTop - (SCROLL_PADDING * 2)
             requestedBeforeHeight = requestedBeforeHeight > 0 ? requestedBeforeHeight : 0
 
-            const { unitGroupList } = this.props
-
             // Setting the approximate "before" height before the minor adjustments
             this.beforeHeight = requestedBeforeHeight
 
             // Finding the first row index that should be rendered for the current scroll position
             let rowIndex = 0
             // "As long as the current row's height doesn't exceed the remainder"
-            while (requestedBeforeHeight - this.calculatedHeights[unitGroupList[rowIndex]._id] > 0) {
+            while (requestedBeforeHeight - this.calculatedHeights[unitGroupList[rowIndex].bzId.toString()] > 0) {
               // Subtracting the current row's height from the remainder
-              requestedBeforeHeight -= this.calculatedHeights[unitGroupList[rowIndex]._id]
+              requestedBeforeHeight -= this.calculatedHeights[unitGroupList[rowIndex].bzId.toString()]
               // Counting to the next row
               rowIndex++
             }
@@ -89,8 +92,6 @@ export class UnitGroupList extends PureComponent {
               viewedData
             })
           }
-
-          nextFrameRequested = false
         })
         nextFrameRequested = true
       }
@@ -99,33 +100,48 @@ export class UnitGroupList extends PureComponent {
 
   calcHeightForData = data => {
     return data.reduce((sum, d) => {
-      return sum + this.calculatedHeights[d._id]
+      return sum + this.calculatedHeights[d.bzId.toString()]
     }, 0)
   }
 
-  componentDidMount () {
-    const { unitGroupList } = this.props
+  handleDataUpdated = unitGroupList => {
+    this.scrollerEl.scrollTop = 0
     this.afterHeight = 0
     this.beforeHeight = 0
-    unitGroupList.forEach((item, idx) => {
-      // item._scrollId = item._scrollId + 'scroll '
-      if (!this.calculatedHeights[item._id]) {
-        this.calculatedHeights[item._id] = UNIT_ROW_HEIGHT
-      }
+    if (unitGroupList.length) {
+      unitGroupList.forEach((item, idx) => {
+        const strId = item.bzId.toString()
+        if (!this.calculatedHeights[strId]) {
+          this.calculatedHeights[strId] = UNIT_ROW_HEIGHT
+        }
 
-      if (idx >= UNIT_ROW_LIMIT) {
-        this.afterHeight += this.calculatedHeights[item._id]
-      }
-    })
+        if (idx >= UNIT_ROW_LIMIT) {
+          this.afterHeight += this.calculatedHeights[strId]
+        }
+      })
 
-    this.paddingEl.style.paddingBottom = this.afterHeight + 'px'
-    const viewedData = unitGroupList.slice(0, UNIT_ROW_LIMIT)
+      this.paddingEl.style.paddingBottom = this.afterHeight + 'px'
+      const viewedData = unitGroupList.slice(0, UNIT_ROW_LIMIT)
+      this.viewedHeight = this.calcHeightForData(viewedData)
+      this.setState({
+        viewedData
+      })
+    } else {
+      this.viewedHeight = 0
+      this.setState({
+        viewedData: []
+      })
+    }
+  }
 
-    this.viewedHeight = this.calcHeightForData(viewedData)
+  componentDidMount () {
+    this.handleDataUpdated(this.props.unitGroupList)
+  }
 
-    this.setState({
-      viewedData
-    })
+  componentDidUpdate (prevProps) {
+    if (prevProps.unitGroupList !== this.props.unitGroupList) {
+      this.handleDataUpdated(this.props.unitGroupList)
+    }
   }
 
   render () {
@@ -135,7 +151,7 @@ export class UnitGroupList extends PureComponent {
 
     return (
       <div
-        onScroll={this.handleScroll}
+        onScroll={this.handleScroll} ref={el => { this.scrollerEl = el }}
         className='bb b--black-10 overflow-auto flex-grow flex flex-column bg-very-light-gray pb6'
       >
         {unitGroupList.length ? (
