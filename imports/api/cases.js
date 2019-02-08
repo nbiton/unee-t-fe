@@ -260,7 +260,6 @@ if (Meteor.isServer) {
         return rawCase => {
           const caseItem = transformCaseForClient(rawCase)
           const { assignee, creator, involvedList, keywords } = caseItem
-          console.log({ userIdentifier, assignee, creator, involvedList, keywords })
           const statusCheck = showOpenOnly ? x => !isClosed(x) : () => true
           return (
             !(keywords && REPORT_EL_TYPES.some(type => keywords.includes(type))) && statusCheck(caseItem) &&
