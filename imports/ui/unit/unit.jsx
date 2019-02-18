@@ -222,11 +222,12 @@ class Unit extends Component {
       }
     ]
     const ongoingRemoval = this.getOngoingRemoval(this.props, this.state)
-    const currLoginName = currentUser && currentUser.bugzillaCreds.login
+    const currLoginName = currentUser.bugzillaCreds.login
 
     const metaData = unitItem.metaData() || {}
     const unitName = metaData.displayName || unitItem.name
 
+    const isOwner = metaData.ownerIds && metaData.ownerIds.includes(currentUser._id)
     return (
       <div className='full-height flex flex-column'>
         <InnerAppBar
@@ -374,9 +375,15 @@ class Unit extends Component {
                         </div>
                       ) : unitUsers
                         .filter(user => !placeholderEmailMatcher(user.login))
+                        .sort((a, b) => a._id === currentUser._id // Sorting for the curr user to appear first
+                          ? 1
+                          : b._id === currentUser._id
+                            ? -1
+                            : 0
+                        )
                         .map(user => (
                           <div className='mt1' key={user.login}>
-                            {userInfoItem(user, currLoginName !== user.login && (user => !!user.email && (
+                            {userInfoItem(user, isOwner && currLoginName !== user.login && (user => !!user.email && (
                               <IconButton onClick={() => this.setState({
                                 userToRemove: user,
                                 showRemovalConfirmation: true
@@ -463,26 +470,32 @@ export default connect(
       unitError = error
     }
   })
-  const unitItem = unitHandle.ready() ? Units.findOne({ id: parseInt(unitId) }) : null
-  let casesHandle, reportsHandle
+  const handles = [
+    unitHandle,
+    Meteor.subscribe('users.myBzLogin')
+  ]
+  const unitItem = Units.findOne({ id: parseInt(unitId) })
   if (unitItem) {
-    casesHandle = Meteor.subscribe(`${casesCollName}.byUnitName`, unitItem.name, {
-      onStop: error => {
-        casesError = error
-      }
-    })
-    reportsHandle = Meteor.subscribe(`${reportsCollName}.byUnitName`, unitItem.name, {
-      onStop: error => {
-        reportsError = error
-      }
-    })
+    handles.push(
+      Meteor.subscribe(`${casesCollName}.byUnitName`, unitItem.name, {
+        onStop: error => {
+          casesError = error
+        }
+      }),
+      Meteor.subscribe(`${reportsCollName}.byUnitName`, unitItem.name, {
+        onStop: error => {
+          reportsError = error
+        }
+      })
+    )
   }
+
   return {
-    isLoading: !unitHandle.ready() || !casesHandle.ready() || !reportsHandle.ready(),
-    unitUsers: unitItem ? getUnitRoles(unitItem).map(makeMatchingUser) : null,
-    caseList: unitItem ? Cases.find({ selectedUnit: unitItem.name }).fetch() : null,
-    reportList: unitItem ? Reports.find({ selectedUnit: unitItem.name }).fetch() : null,
-    currentUser: Meteor.subscribe('users.myBzLogin').ready() ? Meteor.user() : null,
+    isLoading: handles.some(h => !h.ready()),
+    unitUsers: unitHandle.ready() ? getUnitRoles(unitItem).map(makeMatchingUser) : null,
+    caseList: unitHandle.ready() ? Cases.find({ selectedUnit: unitItem.name }).fetch() : null,
+    reportList: unitHandle.ready() ? Reports.find({ selectedUnit: unitItem.name }).fetch() : null,
+    currentUser: Meteor.user(),
     reportsError,
     casesError,
     unitError,
