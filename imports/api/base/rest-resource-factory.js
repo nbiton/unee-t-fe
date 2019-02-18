@@ -1,5 +1,6 @@
 import { Meteor } from 'meteor/meteor'
 import bugzillaApi from '../../util/bugzilla-api'
+import { logger } from '../../util/logger'
 
 /**
  This publication generator is using the low-level meteor API to manage a published collection to the client
@@ -11,10 +12,11 @@ import bugzillaApi from '../../util/bugzilla-api'
  - error() - notifies the subscribed client that an error has occurred during the process of this publication
  - onStop(callback) - adds a handler for when a subscribed client removes its subscription
  */
-export default ({collectionName, dataResolver}) => {
+const defaultIdResolver = item => item.id.toString()
+export default ({ collectionName, dataResolver, idResolver = defaultIdResolver }) => {
   // Storing all handles for use in live updates
   const addedMatcherDescriptors = []
-  const changedHandles = {}
+  const changedHandlesMap = {}
   const matchersStore = addedMatcherFactory => {
     let matchersDict
     if (addedMatcherFactory) matchersDict = {}
@@ -44,22 +46,23 @@ export default ({collectionName, dataResolver}) => {
       }
     }
   }
+  const defaultIdentityResolver = (handle, query) => JSON.stringify(query)
   const basePublish = (subHandle, url, resolver, payload = {}) => {
-    const {callAPI} = bugzillaApi
+    const { callAPI } = bugzillaApi
 
     // Checking if the user is authenticated
     if (!subHandle.userId) {
       subHandle.ready()
-      subHandle.error(new Meteor.Error({message: 'Authentication required'}))
+      subHandle.error(new Meteor.Error({ message: 'Authentication required' }))
       return false
     }
 
     // Fetching the current user
-    const currUser = Meteor.users.findOne({_id: subHandle.userId})
+    const currUser = Meteor.users.findOne({ _id: subHandle.userId })
     let handleStopped
 
     // Fetching the data from bugzilla using the uriTemplate given by the resource implementation
-    callAPI('get', url, Object.assign({api_key: currUser.bugzillaCreds.apiKey}, payload))
+    callAPI('get', url, Object.assign({ api_key: currUser.bugzillaCreds.apiKey }, payload))
       .then(data => {
         // Using the dataResolver callback to focus on the relevant data from the response object
         const payload = resolver(data)
@@ -71,9 +74,9 @@ export default ({collectionName, dataResolver}) => {
 
         // Creating a function that could be used to add every item to the simulated collection
         doPayloadAction(payload, item => {
-          const idStr = item.id.toString()
+          const idStr = idResolver(item)
           if (!handleStopped) {
-            const resourceHandles = changedHandles[idStr] = changedHandles[idStr] || []
+            const resourceHandles = changedHandlesMap[idStr] = changedHandlesMap[idStr] || []
             resourceHandles.push(subHandle)
           }
           subHandle.added(collectionName, idStr, item)
@@ -81,9 +84,11 @@ export default ({collectionName, dataResolver}) => {
 
         subHandle.onStop(() => {
           doPayloadAction(payload, item => {
-            const idStr = item.id.toString()
-            const handleInd = changedHandles[idStr].indexOf(subHandle)
-            changedHandles[idStr].splice(handleInd, 1)
+            const idStr = idResolver(item)
+            if (changedHandlesMap[idStr]) {
+              const handleInd = changedHandlesMap[idStr].indexOf(subHandle)
+              changedHandlesMap[idStr].splice(handleInd, 1)
+            }
           })
         })
 
@@ -91,13 +96,13 @@ export default ({collectionName, dataResolver}) => {
         subHandle.ready()
       })
       .catch(err => {
-        console.log(
+        logger.info(
           `client request from user ${subHandle.userId} to ${url} with ${JSON.stringify(payload)} resulted
            in an error:`,
           err
         )
         subHandle.ready()
-        subHandle.error(new Meteor.Error({message: 'REST API error', origError: err}))
+        subHandle.error(new Meteor.Error({ message: 'REST API error', origError: err }))
       })
     subHandle.onStop(() => {
       handleStopped = true
@@ -105,7 +110,7 @@ export default ({collectionName, dataResolver}) => {
     return true
   }
   return {
-    publishById ({uriTemplate, addedMatcherFactory}) {
+    publishById ({ uriTemplate, addedMatcherFactory }) {
       const store = matchersStore(addedMatcherFactory)
       return function (resourceId) {
         const resolvedRoute = uriTemplate(resourceId)
@@ -115,7 +120,7 @@ export default ({collectionName, dataResolver}) => {
         if (typeof resolvedRoute === 'string') {
           accepted = basePublish(this, resolvedRoute, data => dataResolver(data, resourceId))
         } else {
-          const {url, params} = resolvedRoute
+          const { url, params } = resolvedRoute
           accepted = basePublish(this, url, data => dataResolver(data, resourceId), params)
         }
 
@@ -125,14 +130,14 @@ export default ({collectionName, dataResolver}) => {
       }
     },
     // TODO: Add tests for this
-    publishByCustomQuery ({uriTemplate, addedMatcherFactory, queryBuilder}) {
+    publishByCustomQuery ({ uriTemplate, addedMatcherFactory, queryBuilder, requestIdentityResolver = defaultIdentityResolver }) {
       const store = matchersStore(addedMatcherFactory)
       return function () {
         const query = queryBuilder(this, ...arguments)
         const accepted = basePublish(this, uriTemplate(query), data => dataResolver(data, query), query)
 
         if (accepted) {
-          store(this, JSON.stringify(query))
+          store(this, requestIdentityResolver(this, query, ...arguments))
         }
       }
     },
@@ -143,14 +148,54 @@ export default ({collectionName, dataResolver}) => {
         .reduce((flatList, desc) => flatList.concat(desc.handles), [])
         .forEach(handle => handle.added(collectionName, item.id.toString(), item))
     },
-    handleChanged (resourceId, itemDiff) {
-      const idStr = resourceId.toString()
-      const handles = changedHandles[idStr]
-      if (handles) { // unlikely to be false, but I can imagine some edge cases
-        handles.forEach(handle => {
-          handle.changed(collectionName, idStr, itemDiff)
+    handleChanged (item, fieldNames) {
+      const idStr = item.id.toString()
+
+      // Picking just the fields that were announced as changed for better bandwidth usage when calling the handles' "changed" hook
+      const fields = Object.keys(item).reduce((all, key) => {
+        if (fieldNames.includes(key)) {
+          all[key] = item[key]
+        }
+        return all
+      }, {})
+
+      const changedHandles = changedHandlesMap[idStr]
+      if (changedHandles) { // unlikely to be false, but I can imagine some edge cases
+        changedHandles.forEach(handle => { // Notifying the change to all handles subscribed to this item
+          handle.changed(collectionName, idStr, fields)
         })
       }
+
+      // Sorting descriptors to two classes: one that the item can potentially be added to, and the other - removed from
+      const descClasses = addedMatcherDescriptors.reduce((all, desc) => {
+        if (desc.matcher(item)) {
+          all.added.push(desc)
+        } else {
+          all.removed.push(desc)
+        }
+        return all
+      }, { added: [], removed: [] })
+
+      // For the potentially added - calling "added" for all client handles that weren't notified of the change (they're not subscribed to the item yet)
+      descClasses.added
+        .reduce((flatList, desc) => flatList.concat(desc.handles), [])
+        .forEach(handle => {
+          if (!changedHandles.includes(handle)) {
+            handle.added(collectionName, idStr, item)
+            changedHandles.push(handle)
+          }
+        })
+
+      // For the potentially removed - calling "removed" for all client handles that were notified of the change (they are subscribed to this item already)
+      descClasses.removed
+        .reduce((flatList, desc) => flatList.concat(desc.handles), [])
+        .forEach(handle => {
+          const handleIdx = changedHandles.indexOf(handle)
+          if (handleIdx !== -1) {
+            handle.removed(collectionName, idStr)
+            changedHandles.splice(handleIdx, 1)
+          }
+        })
     },
     handleRemoved (resourceId, itemId) {
       // TODO: complete implementation

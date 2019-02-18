@@ -7,38 +7,43 @@ import routerRedux from 'react-router-redux'
 import { Meteor } from 'meteor/meteor'
 import _ from 'lodash'
 import moment from 'moment'
-import IconButton from 'material-ui/IconButton'
-import FontIcon from 'material-ui/FontIcon'
 import Cases, { getCaseUsers, collectionName as casesCollName } from '../../api/cases'
-import Comments from '../../api/comments'
+import Comments, { collectionName as commentsCollName } from '../../api/comments'
 import Units, { getUnitRoles, collectionName as unitsCollName } from '../../api/units'
 import PendingInvitations, { collectionName as inviteCollName } from '../../api/pending-invitations'
 import CaseFieldValues, { collectionName as cfvCollName } from '../../api/case-field-values'
 import InnerAppBar from '../components/inner-app-bar'
-import actions from './case.actions'
+import actions, { markNotificationsAsRead } from './case.actions'
 import MaximizedAttachment from './maximized-attachment'
 import CaseMessages from './case-messages'
 import CaseDetails from './case-details'
 import { attachmentTextMatcher } from '../../util/matchers'
-import WelcomeDialog from '../dialogs/welcome-dialog'
+// import WelcomeDialog from '../dialogs/welcome-dialog'
 import { formatDayText } from '../../util/formatters'
 import Preloader from '../preloader/preloader'
 import { makeMatchingUser } from '../../api/custom-users'
+import FloatingInfoBar from '../components/floating-info-bar'
 
 export class Case extends Component {
+  componentDidMount () {
+    const { match, dispatch } = this.props
+    const { caseId } = match.params
+    dispatch(markNotificationsAsRead(caseId))
+  }
   componentWillReceiveProps ({
     caseItem, comments, loadingCase, loadingComments, loadingUnit, loadingPendingInvitations, caseError, dispatch,
-    userEmail, ancestorPath
+    userBzLogin, ancestorPath
   }) {
     if (!loadingCase && !loadingComments && !loadingUnit && !loadingPendingInvitations && !caseError &&
       (
         loadingCase !== this.props.loadingCase ||
         loadingComments !== this.props.loadingComments ||
         loadingUnit !== this.props.loadingUnit ||
-        loadingPendingInvitations !== this.props.loadingPendingInvitations
+        loadingPendingInvitations !== this.props.loadingPendingInvitations ||
+        !_.isEqual(comments, this.props.comments)
       )
     ) {
-      this.props.dispatchLoadingResult({caseItem, comments, dispatch, userEmail, ancestorPath})
+      this.props.dispatchLoadingResult({ caseItem, comments, dispatch, userBzLogin, ancestorPath })
     }
   }
   navigateToAttachment (id) {
@@ -49,8 +54,8 @@ export class Case extends Component {
   render () {
     const {
       caseItem, comments, loadingCase, loadingComments, loadingUnit, caseError, commentsError, unitError, unitItem,
-      attachmentUploads, match, userEmail, dispatch, unitUsers, invitationState, caseUserTypes,
-      loadingPendingInvitations, pendingInvitations, showWelcomeDialog, invitedByDetails,
+      attachmentUploads, match, userBzLogin, dispatch, unitUsers, invitationState, caseUserTypes,
+      loadingPendingInvitations, pendingInvitations, /* showWelcomeDialog, invitedByDetails, */
       cfvDictionary, loadingCfv, cfvError, caseUsersState
     } = this.props
     const errors = [
@@ -75,7 +80,7 @@ export class Case extends Component {
     const { push } = routerRedux
     const {
       createComment, createAttachment, retryAttachment, addRoleUsers, removeRoleUser, inviteNewUser, clearInvitation,
-      clearWelcomeMessage, updateInvitedUserName, assignNewUser, assignExistingUser, editCaseField, clearRoleUsersState
+      /* clearWelcomeMessage, updateInvitedUserName, */ assignNewUser, assignExistingUser, editCaseField, clearRoleUsersState
     } = actions
     const { caseId } = match.params
     const detailsUrl = `${match.url}/details`
@@ -84,7 +89,7 @@ export class Case extends Component {
       <Switch>
         <Route exact path={`${match.url}/attachment/:attachId`} render={subProps => {
           const { attachId } = subProps.match.params
-          const selectedComment = _.find(comments, {id: parseInt(attachId)})
+          const selectedComment = _.find(comments, { id: parseInt(attachId) })
           if (!selectedComment || !attachmentTextMatcher(selectedComment.text)) {
             return <Redirect to={match.url} />
           } else {
@@ -98,7 +103,7 @@ export class Case extends Component {
             <Switch>
               <Route exact path={match.url} render={() => (
                 <CaseMessages
-                  {...{caseItem, comments, attachmentUploads, userEmail}}
+                  {...{ caseItem, comments, attachmentUploads, userBzLogin }}
                   onCreateComment={text => dispatch(createComment(text, caseId))}
                   onCreateAttachment={(preview, file) => dispatch(createAttachment(preview, file, caseId))}
                   onRetryAttachment={process => dispatch(retryAttachment(process))}
@@ -135,12 +140,12 @@ export class Case extends Component {
                 />
               )} />
             </Switch>
-            <WelcomeDialog
-              show={showWelcomeDialog}
-              onDismissed={() => dispatch(clearWelcomeMessage())}
-              onNameSubmitted={name => dispatch(updateInvitedUserName(name))}
-              {...{unitItem, caseItem, invitedByDetails}}
-            />
+            {/* <WelcomeDialog */}
+            {/* show={showWelcomeDialog}* /}
+            {/* onDismissed={() => dispatch(clearWelcomeMessage())}* /}
+            {/* onNameSubmitted={name => dispatch(updateInvitedUserName(name))} */}
+            {/* {...{ unitItem, caseItem, invitedByDetails }}* /}
+            {/* /> */}
           </div>
         )} />
         <Redirect to={match.url} />
@@ -156,7 +161,7 @@ Case.propTypes = {
   loadingComments: PropTypes.bool,
   commentsError: PropTypes.object,
   comments: PropTypes.array,
-  userEmail: PropTypes.string,
+  userBzLogin: PropTypes.string,
   dispatchLoadingResult: PropTypes.func.isRequired,
   attachmentUploads: PropTypes.array,
   loadingUnit: PropTypes.bool,
@@ -170,8 +175,8 @@ Case.propTypes = {
   invitationState: PropTypes.object.isRequired,
   loadingPendingInvitations: PropTypes.bool.isRequired,
   pendingInvitations: PropTypes.array,
-  showWelcomeDialog: PropTypes.bool,
-  invitedByDetails: PropTypes.object,
+  // showWelcomeDialog: PropTypes.bool,
+  // invitedByDetails: PropTypes.object,
   caseUsersState: PropTypes.object.isRequired,
   ancestorPath: PropTypes.string
 }
@@ -185,7 +190,7 @@ const CaseContainer = createContainer(props => {
       caseError = error
     }
   })
-  const commentsHandle = Meteor.subscribe('caseComments', caseId, {
+  const commentsHandle = Meteor.subscribe(`${commentsCollName}.byCaseId`, caseId, {
     onStop: error => {
       commentsError = error
     }
@@ -198,13 +203,15 @@ const CaseContainer = createContainer(props => {
         unitError = error
       }
     })
-    currUnit = unitHandle.ready() ? Units.findOne({name: currCase.selectedUnit}) : null
+    currUnit = unitHandle.ready() ? Units.findOne({ name: currCase.selectedUnit }) : null
   }
   const cfvHandle = Meteor.subscribe(`${cfvCollName}.fetchByName`, 'status', {
     onStop: error => {
       cfvError = error
     }
   })
+
+  const bzLoginHandle = Meteor.subscribe('users.myBzLogin')
 
   const caseUserTypes = currCase ? getCaseUsers(currCase) : null
   const unitRoles = currUnit && getUnitRoles(currUnit)
@@ -214,20 +221,20 @@ const CaseContainer = createContainer(props => {
     caseItem: currCase,
     loadingComments: !commentsHandle.ready(),
     commentsError,
-    comments: Comments.find({bug_id: parseInt(caseId)}).fetch().map(comment => {
+    comments: Comments.find({ bug_id: parseInt(caseId) }).fetch().map(comment => {
       const creatorUser = Meteor.users.findOne({ 'bugzillaCreds.login': comment.creator })
       return { ...comment, creatorUser }
     }),
-    userEmail: Meteor.user() ? Meteor.user().emails[0].address : null,
+    userBzLogin: bzLoginHandle.ready() ? Meteor.user().bugzillaCreds.login : null,
     loadingUnit: !unitHandle || !unitHandle.ready(),
     unitError,
     unitItem: currUnit,
     unitUsers: unitRoles && unitRoles.map(makeMatchingUser),
     caseUserTypes: caseUserTypes && unitRoles && Object.keys(caseUserTypes).reduce((all, userType) => {
       const mapUser = user => {
-        const role = _.find(unitRoles, {login: user.login})
+        const role = _.find(unitRoles, { login: user.login })
         const matchingUser = makeMatchingUser(user)
-        return role ? Object.assign(matchingUser, {role: role.role}) : matchingUser
+        return role ? Object.assign(matchingUser, { role: role.role }) : matchingUser
       }
       all[userType] = Array.isArray(caseUserTypes[userType])
         ? caseUserTypes[userType].map(mapUser)
@@ -235,62 +242,52 @@ const CaseContainer = createContainer(props => {
       return all
     }, {}),
     loadingCfv: !cfvHandle.ready(),
-    cfvDictionary: cfvHandle.ready() ? {status: CaseFieldValues.findOne({name: 'status'})} : null,
+    cfvDictionary: cfvHandle.ready() ? { status: CaseFieldValues.findOne({ name: 'status' }) } : null,
     cfvError,
     loadingPendingInvitations: !Meteor.subscribe(`${inviteCollName}.byCaseId`, parseInt(caseId)).ready(),
-    pendingInvitations: PendingInvitations.find({caseId: parseInt(caseId)}).fetch()
+    pendingInvitations: PendingInvitations.find({ caseId: parseInt(caseId) }).fetch().filter(inv => inv.inviteeUser())
   }
 }, Case)
 
 const connectedWrapper = withRouter(connect(
   (
     {
-      caseAttachmentUploads,
+      attachmentUploads,
       invitationState,
-      invitationLoginState: { showWelcomeMessage, invitedByDetails },
-      caseUsersState,
-      pathBreadcrumb
+      // invitationLoginState: { showWelcomeMessage, invitedByDetails },
+      caseUsersState
     },
     props
   ) => ({
-    attachmentUploads: caseAttachmentUploads[props.match.params.caseId.toString()] || [],
+    attachmentUploads: attachmentUploads[props.match.params.caseId.toString()] || [],
     invitationState,
-    invitedByDetails,
-    caseUsersState,
-    showWelcomeDialog: !!showWelcomeMessage,
-    ancestorPath: pathBreadcrumb
+    caseUsersState
+    // invitedByDetails,
+    // showWelcomeDialog: !!showWelcomeMessage
   })
 )(CaseContainer))
 
 const MobileHeader = props => {
-  const { caseItem, comments, dispatch, userEmail, ancestorPath } = props.contentProps
+  const { caseItem, comments, dispatch, userBzLogin } = props.contentProps
   const { match } = props
   const handleBack = () => {
-    const { push } = routerRedux
-    if (match.isExact && ancestorPath) {
-      dispatch(push(ancestorPath))
-    } else {
-      dispatch(push(props.location.pathname.split('/').slice(0, -1).join('/')))
-    }
+    dispatch(routerRedux.goBack())
   }
   return (
     <Switch>
       <Route exact path={`${match.url}/attachment/:attachId`} render={subProps => {
         const { attachId } = subProps.match.params
-        const selectedComment = _.find(comments, {id: parseInt(attachId)})
-        const { creationTime, creator } = selectedComment
+        const selectedComment = _.find(comments, { id: parseInt(attachId) })
+        const { creation_time: creationTime, creator } = selectedComment
         const timeText = `${formatDayText(creationTime)}, ${moment(creationTime).format('HH:mm')}`
-        const creatorText = userEmail === creator ? 'You' : creator
+        const creatorText = userBzLogin === creator ? 'You' : creator
         return (
-          <div className='fixed top-0 w-100 bg-black-20 flex items-center'>
-            <IconButton onClick={() => handleBack(match.url)}>
-              <FontIcon className='material-icons' color='white'>arrow_back</FontIcon>
-            </IconButton>
+          <FloatingInfoBar handleBack={() => handleBack()}>
             <div className='white'>
               <h4 className='mv1'>{creatorText}</h4>
               <h5 className='mv1'>{timeText}</h5>
             </div>
-          </div>
+          </FloatingInfoBar>
         )
       }} />
       <Route path={match.url} render={routeProps => (

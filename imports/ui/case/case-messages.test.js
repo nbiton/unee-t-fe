@@ -15,7 +15,7 @@ if (Meteor.isClient) {
       product: 'The name of the unit'
     }
     const emptyParams = {
-      userEmail: '',
+      userBzLogin: '',
       attachmentUploads: [],
       onCreateComment: () => {},
       onCreateAttachment: () => {},
@@ -96,19 +96,19 @@ if (Meteor.isClient) {
       expect(findLabel(comp, moment(closePastDate).format('MMMM DD'))).to.have.lengthOf(1)
     })
 
-    it('should render a day label with as "{month name} {date}, {year}" for anything over a year ago', () => {
+    it('should render a day label with as "{year}-{month}-{day}" for anything over a year ago', () => {
       const pastDate = new Date(Date.now() - 366 * 24 * 36e5) // 366 days ago
 
       const comp = shallow(<CaseMessages caseItem={caseItem} comments={[generateComment(pastDate.getTime())]} {...emptyParams} />)
 
-      expect(findLabel(comp, moment(pastDate).format('MMMM DD, YYYY'))).to.have.lengthOf(1)
+      expect(findLabel(comp, moment(pastDate).format('YYYY-MM-DD'))).to.have.lengthOf(1)
     })
 
     it('should render a self made comment right aligned and with no creator label', () => {
       const meEmail = 'bla123@example.com'
       const comment = generateComment(Date.now(), 'bla bla', meEmail)
 
-      const comp = shallow(<CaseMessages {...emptyParams} caseItem={caseItem} comments={[comment]} userEmail={meEmail} />)
+      const comp = shallow(<CaseMessages {...emptyParams} caseItem={caseItem} comments={[comment]} userBzLogin={meEmail} />)
 
       expect(findLabel(comp, comment.creator)).to.have.lengthOf(0) // No label
       expect(comp.find(`.${styles.messagesContainer}`).childAt(1).is('.tr')).to.be.true()
@@ -122,9 +122,9 @@ if (Meteor.isClient) {
           <CaseMessages {...emptyParams}
             caseItem={caseItem} comments={[]} userEmail='mail@example.com' onCreateComment={onCreateComment} />
         )
-        comp.find(`.${styles.inputRow} input[type="text"]`)
-          .simulate('change', {target: {value}}) // Triggering the change
-        comp.find('FloatingActionButton').simulate('click', {preventDefault: () => {}})
+        comp.find('#chatbox')
+          .simulate('change', { target: { value } }) // Triggering the change
+        comp.find('FloatingActionButton').simulate('click', { preventDefault: () => {} })
 
         expect(onCreateComment).to.have.been.calledWith(value)
       })

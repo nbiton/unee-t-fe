@@ -1,38 +1,51 @@
-import React, { Component } from 'react'
-import PropTypes from 'prop-types'
-import TextField from 'material-ui/TextField'
+// @flow
+/* global SyntheticInputEvent, HTMLInputElement */
+import * as React from 'react'
+
+import StickyTextField from './sticky-text-field'
+
 import {
   textInputFloatingLabelStyle,
   textInputStyle,
   textInputUnderlineFocusStyle
 } from '../components/form-controls.mui-styles'
 
-export default class InputRow extends Component {
+type Props = {
+  label: string,
+  onChange: (evt: SyntheticInputEvent<HTMLInputElement>) => void,
+  value: ?string,
+  errorText?: ?string,
+  inpRef?: (el: HTMLInputElement) => void,
+  disabled?: boolean,
+  isMultiLine?: boolean,
+  placeholder?: string,
+  underlineShow?: boolean,
+  inpType?: string,
+  isFloatingLabelFixed?: boolean
+}
+
+export default class InputRow extends React.Component<Props> {
   render () {
-    const { inpType, inpRef, label, placeholder, errorText, disabled, value, onChange } = this.props
+    const {
+      inpType, inpRef, label, isFloatingLabelFixed, placeholder,
+      errorText, disabled, value, onChange, isMultiLine, underlineShow
+    } = this.props
+    const doShowUnderline = typeof underlineShow === 'boolean' ? underlineShow : true
     const type = inpType || 'text'
     return (
-      <TextField
+      <StickyTextField
         floatingLabelText={label}
+        floatingLabelFixed={!!isFloatingLabelFixed}
         floatingLabelShrinkStyle={textInputFloatingLabelStyle}
         underlineFocusStyle={textInputUnderlineFocusStyle}
         inputStyle={textInputStyle}
         fullWidth
+        multiLine={!!isMultiLine}
         hintText={placeholder}
-        ref={inpRef}
-        {...{type, errorText, disabled, value, onChange}}
+        inpRef={inpRef}
+        underlineShow={doShowUnderline}
+        {...{ type, errorText, disabled, value, onChange }}
       />
     )
   }
-}
-
-InputRow.propTypes = {
-  label: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-  value: PropTypes.any,
-  errorText: PropTypes.string,
-  inpRef: PropTypes.func,
-  inpType: PropTypes.string,
-  disabled: PropTypes.bool,
-  placeholder: PropTypes.string
 }

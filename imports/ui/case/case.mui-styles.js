@@ -8,7 +8,8 @@ export const subheaderStyle = {
 export const attachmentButtonStyle = {
   width: 36,
   height: 36,
-  padding: 0
+  padding: 0,
+  marginBottom: '0.6rem'
 }
 
 export const retryButtonStyle = {
@@ -31,8 +32,9 @@ export const infoIconStyle = {
   marginRight: '0.25rem'
 }
 
-export const addPersonIconStyle = {
-  color: '#a4a4a4',
+export const addPersonCaseMsg = {
+  color: 'var(--bondi-blue)',
   fontSize: 16,
-  lineHeight: '1.7rem'
+  lineHeight: '1.7rem',
+  marginRight: '0.25rem'
 }

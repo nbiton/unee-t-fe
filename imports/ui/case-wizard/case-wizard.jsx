@@ -3,7 +3,7 @@ import { Meteor } from 'meteor/meteor'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createContainer } from 'meteor/react-meteor-data'
-import { goBack, replace } from 'react-router-redux'
+import { goBack } from 'react-router-redux'
 import { withRouter } from 'react-router-dom'
 import TextField from 'material-ui/TextField'
 import SelectField from 'material-ui/SelectField'
@@ -12,7 +12,10 @@ import RaisedButton from 'material-ui/RaisedButton'
 import { RadioButton, RadioButtonGroup } from 'material-ui/RadioButton'
 import CircularProgress from 'material-ui/CircularProgress'
 import CaseFieldValues, { collectionName as fieldValsCollName } from '../../api/case-field-values'
+import Reports, { collectionName as reportsCollName } from '../../api/reports'
+import UnitMetaData from '../../api/unit-meta-data'
 import Checkbox from 'material-ui/Checkbox'
+import { parseQueryString } from '../../util/parsers'
 import InnerAppBar from '../components/inner-app-bar'
 import ErrorDialog from '../dialogs/error-dialog'
 import Preloader from '../preloader/preloader'
@@ -21,6 +24,7 @@ import { createCase, clearError } from './case-wizard.actions'
 import { placeholderEmailMatcher, roleCanBeOccupantMatcher } from '../../util/matchers'
 import { emailValidator } from '../../util/validators'
 import InputRow from '../components/input-row'
+import { infoItemMembers } from '../util/static-info-rendering'
 
 import {
   textInputFloatingLabelStyle,
@@ -36,22 +40,20 @@ class CaseWizard extends Component {
     this.state = {
       inputValues: {
         mandatory: {
-          selectedUnit: null,
           title: '',
-          details: '',
           assignedUnitRole: null
         },
         optional: {
+          details: '',
           category: null,
-          subCategory: null,
-          priority: null,
-          severity: null
+          subCategory: null
         }
       },
       needsNewUser: false,
       newUserEmail: '',
       newUserCanBeOccupant: false,
-      newUserIsOccupant: false
+      newUserIsOccupant: false,
+      initDone: false
     }
   }
 
@@ -60,35 +62,23 @@ class CaseWizard extends Component {
       this.refs.scrollPane.scrollTop = this.refs.scrollPane.scrollHeight
       this.emailInputEl.focus()
     }
-  }
-  componentWillReceiveProps (nextProps) {
-    const { units, preferredUnitId, dispatch } = this.props
+    const { unitItem, userBzLogin } = this.props
     const { inputValues } = this.state
-    if (
-      units.length === 0 && nextProps.units.length > 0 &&
-      preferredUnitId && !this.state.inputValues.mandatory.selectedUnit
-    ) {
+    if (unitItem && prevProps.unitItem === null) {
+      const defaultValue = unitItem.components.find(({ default_assigned_to: assignedTo }) => assignedTo === userBzLogin).name
       this.setState({
         inputValues: Object.assign({}, inputValues, {
           mandatory: Object.assign({}, inputValues.mandatory, {
-            selectedUnit: nextProps.units.find(unit => unit.id === parseInt(preferredUnitId)).name
+            assignedUnitRole: defaultValue
           })
         })
       })
-      dispatch(replace('/case/new'))
-    }
-  }
-
-  getSelectedUnitObj = () => {
-    const { selectedUnit } = this.state.inputValues.mandatory
-    if (selectedUnit) {
-      return this.props.units.filter(unit => unit.name === selectedUnit)[0]
     }
   }
 
   handleRoleChanged = (evt, val) => {
     const { inputValues } = this.state
-    const { default_assigned_to: assignedTo } = this.getSelectedUnitObj().components.find(({name}) => name === val)
+    const { default_assigned_to: assignedTo } = this.props.unitItem.components.find(({ name }) => name === val)
 
     this.setState({
       inputValues: Object.assign({}, inputValues, {
@@ -106,14 +96,18 @@ class CaseWizard extends Component {
     evt.preventDefault()
     if (!this.checkFormInvalid()) {
       const { inputValues: { mandatory, optional }, newUserEmail, newUserIsOccupant } = this.state
+      if (optional.details === '') {
+        optional.details = mandatory.title
+      }
       this.props.dispatch(createCase(
         Object.assign(
           {},
-          mandatory,
+          Object.assign({ selectedUnit: this.props.unitItem.name }, mandatory),
           optional
         ),
         newUserEmail,
-        newUserIsOccupant
+        newUserIsOccupant,
+        this.props.reportItem
       ))
     }
   }
@@ -128,45 +122,25 @@ class CaseWizard extends Component {
   }
 
   render () {
-    const {
-      loadingUnits, loadingUserEmail, loadingFieldValues, fieldValues, units, userEmail, dispatch, error, inProgress
-    } = this.props
-    if (loadingUnits || loadingUserEmail || loadingFieldValues) {
+    const { isLoading, fieldValues, unitItem, userBzLogin, dispatch, error, inProgress, reportItem } = this.props
+    if (isLoading) {
       return <Preloader />
     }
     const { inputValues, needsNewUser, newUserEmail, newUserIsOccupant, newUserCanBeOccupant } = this.state
     const { mandatory, optional } = inputValues
-    const { selectedUnit, title, details, assignedUnitRole } = mandatory
-    const { category, subCategory, priority, severity } = optional
+    const { title, details, assignedUnitRole } = mandatory
+    const { category, subCategory } = optional
     return (
       <div className='full-height flex flex-column'>
         <InnerAppBar title='New Case' onBack={() => dispatch(goBack())} />
         <form onSubmit={this.handleSubmit}>
           <div className='overflow-auto flex-grow pa3' ref='scrollPane'>
-            <SelectField
-              floatingLabelText='Relevant Unit *'
-              fullWidth
-              floatingLabelShrinkStyle={textInputFloatingLabelStyle}
-              labelStyle={textInputStyle}
-              menuStyle={textInputStyle}
-              iconStyle={selectInputIconStyle}
-              underlineFocusStyle={textInputUnderlineFocusStyle}
-              disabled={inProgress}
-              value={selectedUnit}
-              onChange={(evt, idx, val) => val !== selectedUnit && this.setState({
-                inputValues: Object.assign({}, inputValues, {
-                  mandatory: Object.assign({}, mandatory, {
-                    selectedUnit: val,
-                    assignedUnitRole: null
-                  })
-                }),
-                needsNewUser: false
-              })}
-            >
-              {units.map(unit => (
-                <MenuItem key={unit.name} value={unit.name} primaryText={unit.name} />
-              ))}
-            </SelectField>
+            {infoItemMembers('Unit', unitItem.displayName || unitItem.name)}
+            {reportItem && (
+              <div className='mt2 pt1'>
+                {infoItemMembers('Report', reportItem.title)}
+              </div>
+            )}
             <TextField
               floatingLabelText='Case title *'
               floatingLabelShrinkStyle={textInputFloatingLabelStyle}
@@ -184,7 +158,7 @@ class CaseWizard extends Component {
               })}
             />
             <TextField
-              floatingLabelText='Details *'
+              floatingLabelText='Details'
               floatingLabelShrinkStyle={textInputFloatingLabelStyle}
               underlineFocusStyle={textInputUnderlineFocusStyle}
               textareaStyle={textInputStyle}
@@ -195,7 +169,7 @@ class CaseWizard extends Component {
               value={details}
               onChange={evt => this.setState({
                 inputValues: Object.assign({}, inputValues, {
-                  mandatory: Object.assign({}, mandatory, {
+                  optional: Object.assign({}, optional, {
                     details: evt.target.value
                   })
                 })
@@ -222,7 +196,7 @@ class CaseWizard extends Component {
                     })
                   })}
                 >
-                  {fieldValues.category.values.map(({name}) => (
+                  {fieldValues.category.values.map(({ name }) => (
                     <MenuItem key={name} value={name} primaryText={name} />
                   ))}
                 </SelectField>
@@ -246,7 +220,7 @@ class CaseWizard extends Component {
                     })
                   })}
                 >
-                  {fieldValues.subCategory.values.reduce((all, {name, visibility_values: [relatedCategory]}) => {
+                  {fieldValues.subCategory.values.reduce((all, { name, visibility_values: [relatedCategory] }) => {
                     if (relatedCategory === category) {
                       all.push(
                         <MenuItem key={name} value={name} primaryText={name} />
@@ -257,77 +231,21 @@ class CaseWizard extends Component {
                 </SelectField>
               </div>
             </div>
-            <div className='flex'>
-              <div className='flex-grow mr2'>
-                <SelectField
-                  floatingLabelText='Priority'
-                  fullWidth
-                  floatingLabelShrinkStyle={textInputFloatingLabelStyle}
-                  labelStyle={textInputStyle}
-                  menuStyle={textInputStyle}
-                  iconStyle={selectInputIconStyle}
-                  underlineFocusStyle={textInputUnderlineFocusStyle}
-                  disabled={inProgress}
-                  value={priority}
-                  onChange={(evt, idx, val) => this.setState({
-                    inputValues: Object.assign({}, inputValues, {
-                      optional: Object.assign({}, optional, {
-                        priority: val
-                      })
-                    })
-                  })}
-                >
-                  {fieldValues.priority.values.map(({name}) => (
-                    <MenuItem key={name} value={name} primaryText={name} />
-                  ))}
-                </SelectField>
-              </div>
-              <div className='flex-grow ml2'>
-                <SelectField
-                  floatingLabelText='Severity'
-                  fullWidth
-                  floatingLabelShrinkStyle={textInputFloatingLabelStyle}
-                  labelStyle={textInputStyle}
-                  menuStyle={textInputStyle}
-                  iconStyle={selectInputIconStyle}
-                  underlineFocusStyle={textInputUnderlineFocusStyle}
-                  disabled={inProgress}
-                  value={severity}
-                  onChange={(evt, idx, val) => this.setState({
-                    inputValues: Object.assign({}, inputValues, {
-                      optional: Object.assign({}, optional, {
-                        severity: val
-                      })
-                    })
-                  })}
-                >
-                  {fieldValues.severity.values.map(({name}) => (
-                    <MenuItem key={name} value={name} primaryText={name} />
-                  ))}
-                </SelectField>
-              </div>
-            </div>
             <p className='pv0 f6 bondi-blue'>Assign this case to *</p>
-            {selectedUnit ? (
-              <RadioButtonGroup
-                name='assignedUnitRole'
-                onChange={this.handleRoleChanged}
-                valueSelected={assignedUnitRole}
-              >
-                {
-                  this.getSelectedUnitObj().components
-                    .map(({id, name, default_assigned_to: assignedTo}) => ( // TODO: enhance later
-                      <RadioButton
-                        key={id} value={name} label={name + (assignedTo === userEmail ? ' (you)' : '')} disabled={inProgress}
-                      />
-                    ))
-                }
-              </RadioButtonGroup>
-            ) : (
-              <p className='pv0 silver i'>
-                Select a unit first to see the relevant roles
-              </p>
-            )}
+            <RadioButtonGroup
+              name='assignedUnitRole'
+              onChange={this.handleRoleChanged}
+              valueSelected={assignedUnitRole}
+            >
+              {
+                unitItem.components
+                  .map(({ id, name, default_assigned_to: assignedTo }) => ( // TODO: enhance later
+                    <RadioButton
+                      key={id} value={name} label={name + (assignedTo === userBzLogin ? ' (you)' : '')} disabled={inProgress}
+                    />
+                  ))
+              }
+            </RadioButtonGroup>
             {needsNewUser && (
               <div className='mt3'>
                 <p className='mv0 pv0 f7 warn-crimson lh-copy'>
@@ -335,7 +253,7 @@ class CaseWizard extends Component {
                   the {assignedUnitRole} role or select a different role.
                 </p>
                 <InputRow label={`Email of the ${assignedUnitRole} to invite *`} value={newUserEmail} inpType='email'
-                  onChange={(evt, val) => this.setState({newUserEmail: val})}
+                  onChange={(evt, val) => this.setState({ newUserEmail: val })}
                   errorText={(newUserEmail && !emailValidator(newUserEmail)) ? 'Email address is invalid' : ''}
                   inpRef={el => { this.emailInputEl = el }}
                   disabled={inProgress}
@@ -345,7 +263,7 @@ class CaseWizard extends Component {
                     label={`This ${assignedUnitRole} is also the occupant of this unit`}
                     labelStyle={controlLabelStyle}
                     checked={newUserIsOccupant}
-                    onCheck={(evt, isChecked) => { this.setState({newUserIsOccupant: isChecked}) }}
+                    onCheck={(evt, isChecked) => { this.setState({ newUserIsOccupant: isChecked }) }}
                     disabled={inProgress}
                   />
                 )}
@@ -365,7 +283,7 @@ class CaseWizard extends Component {
               ) : (
                 <span className='white f4 b'>
                 Add Case
-              </span>
+                </span>
               )}
             </RaisedButton>
           </div>
@@ -377,35 +295,49 @@ class CaseWizard extends Component {
 }
 
 CaseWizard.propTypes = {
-  loadingUnits: PropTypes.bool.isRequired,
-  loadingUserEmail: PropTypes.bool.isRequired,
-  loadingFieldValues: PropTypes.bool.isRequired,
+  isLoading: PropTypes.bool.isRequired,
   inProgress: PropTypes.bool.isRequired,
   error: PropTypes.string,
-  units: PropTypes.array,
-  userEmail: PropTypes.string,
+  unitItem: PropTypes.object,
+  userBzLogin: PropTypes.string,
   fieldValues: PropTypes.object,
-  preferredUnitId: PropTypes.string
+  preferredUnitId: PropTypes.string,
+  reportItem: PropTypes.object
 }
 
 export default withRouter(connect(
-  ({ caseCreationState: { inProgress, error } }) => ({
-    inProgress,
-    error
-  })
+  ({ caseCreationState: { inProgress, error } }, props) => {
+    const { unit } = parseQueryString(props.location.search)
+    return {
+      preferredUnitId: unit,
+      inProgress,
+      error
+    }
+  }
 )(createContainer(
-  () => {
-    const enumFields = ['category', 'subCategory', 'priority', 'severity']
+  (props) => {
+    const enumFields = ['category', 'subCategory']
+    const { unit: unitId, report: reportId } = parseQueryString(props.location.search)
+    const unitIdInt = parseInt(unitId)
+    const unitHandle = Meteor.subscribe(`${unitsCollName}.byIdWithRoles`, unitIdInt)
+    const bzLoginHandle = Meteor.subscribe('users.myBzLogin')
+    const reportIdInt = parseInt(reportId)
+    const reportHandle = reportId && Meteor.subscribe(`${reportsCollName}.byId`, reportIdInt)
+    const loadingUnitInfo = !unitHandle.ready()
+    const loadingUserEmail = !bzLoginHandle.ready()
+    const loadingFieldValues = enumFields
+      .map(name => Meteor.subscribe(`${fieldValsCollName}.fetchByName`, name))
+      .filter(handle => !handle.ready()).length > 0
+    const loadingReport = !!reportHandle && !reportHandle.ready()
     return ({
-      loadingUnits: !Meteor.subscribe(`${unitsCollName}.forReporting`).ready(),
-      loadingUserEmail: !Meteor.subscribe('users.myBzLogin').ready(),
-      loadingFieldValues: enumFields
-        .map(name => Meteor.subscribe(`${fieldValsCollName}.fetchByName`, name))
-        .filter(handle => !handle.ready()).length > 0,
-      units: Units.find().fetch(),
-      userEmail: Meteor.user() && Meteor.user().bugzillaCreds && Meteor.user().bugzillaCreds.login,
+      isLoading: loadingUnitInfo || loadingUserEmail || loadingFieldValues || loadingReport,
+      unitItem: unitHandle.ready()
+        ? Object.assign(Units.findOne({ id: unitIdInt }), UnitMetaData.findOne({ bzId: unitIdInt }))
+        : null,
+      userBzLogin: bzLoginHandle.ready() ? Meteor.user().bugzillaCreds.login : null,
+      reportItem: Reports.findOne({ id: reportIdInt }),
       fieldValues: enumFields.reduce((all, name) => {
-        all[name] = CaseFieldValues.findOne({name})
+        all[name] = CaseFieldValues.findOne({ name })
         return all
       }, {})
     })

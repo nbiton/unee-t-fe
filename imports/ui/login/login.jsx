@@ -18,6 +18,13 @@ export class LoginPage extends Component {
       password: ''
     }
   }
+  componentDidMount () {
+    const emailParam = new URL(window.location).searchParams.get('email') || ''
+    this.setState({
+      email: emailParam,
+      emailError: !emailParam || emailValidator(emailParam) ? null : 'Email address is invalid'
+    })
+  }
   handleSubmit = evt => {
     evt.preventDefault()
     const email = this.state.email.trim()
@@ -53,7 +60,7 @@ export class LoginPage extends Component {
             />
             <PasswordInput
               value={password}
-              onChange={evt => this.setState({password: evt.target.value})}
+              onChange={evt => this.setState({ password: evt.target.value })}
             />
           </fieldset>
           { this.props.showLoginError && (
@@ -63,7 +70,12 @@ export class LoginPage extends Component {
           )}
           <div className='flex mt3 items-center'>
             <div className='flex-grow lh-copy tl'>
-              <Link to='/forgot-pass' className='f6 link dim bondi-blue'>Forgot password?</Link>
+              <Link
+                to={'/forgot-pass' + (email ? `?email=${encodeURIComponent(email)}` : '')}
+                className='f6 link dim bondi-blue'
+              >
+                Forgot password?
+              </Link>
             </div>
             <RaisedButton label='Login' labelColor='white' backgroundColor='var(--bondi-blue)' type='submit'
               disabled={!password || !email || emailError}
@@ -80,6 +92,6 @@ LoginPage.propTypes = {
 }
 
 export default connect(
-  ({showLoginError}) => ({showLoginError}) // map redux state to props
+  ({ showLoginError }) => ({ showLoginError }) // map redux state to props
 )(createContainer(() => ({ // map meteor state to props
 }), LoginPage))

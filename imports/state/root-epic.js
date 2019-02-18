@@ -14,7 +14,24 @@ import { editCaseField } from './epics/edit-case-field'
 import { forgotPass } from './epics/forgot-pass'
 import { checkPassReset } from './epics/check-pass-reset'
 import { resetPass } from './epics/reset-pass'
+import { unverifiedWarning } from './epics/unverified-warning'
+import { createReport } from './epics/create-report'
 import { changeNotificationSetting } from './epics/change-notification-setting'
+import { createUnit } from './epics/create-unit'
+import { markCaseCommentsAsRead } from './epics/mark-case-notifications-as-read'
+import { finalizeReport } from './epics/finalize-report'
+import { editReportField } from './epics/edit-report-field'
+import { addReportAttachment } from './epics/add-report-attachment'
+import { retryReportAttachment } from './epics/retry-report-attachment'
+import { generateReportHTMLPreview } from './epics/generate-report-html-preview'
+import { sendReportPdf } from './epics/send-report-pdf'
+import { inviteNewUserToUnit } from './epics/invite-new-user-to-unit'
+import { uploadReportsLogo } from './epics/upload-reports-logo'
+import { changeLogoUrl } from './epics/change-logo-url'
+import { resetLogoUrl } from './epics/reset-reports-logo'
+import { editProfileField } from './epics/edit-profile-field'
+import { uploadAvatarImage } from './epics/upload-avatar-image'
+import { changeAvatarUrl } from './epics/change-avatar-url'
 
 export const rootEpic = combineEpics(
   createAttachment,
@@ -32,5 +49,22 @@ export const rootEpic = combineEpics(
   forgotPass,
   checkPassReset,
   resetPass,
-  changeNotificationSetting
+  unverifiedWarning,
+  changeNotificationSetting,
+  createUnit,
+  createReport,
+  markCaseCommentsAsRead,
+  finalizeReport,
+  editReportField,
+  addReportAttachment,
+  retryReportAttachment,
+  generateReportHTMLPreview,
+  sendReportPdf,
+  inviteNewUserToUnit,
+  uploadReportsLogo,
+  changeLogoUrl,
+  resetLogoUrl,
+  editProfileField,
+  uploadAvatarImage,
+  changeAvatarUrl
 )

@@ -5,9 +5,9 @@ import IconButton from 'material-ui/IconButton'
 import FontIcon from 'material-ui/FontIcon'
 
 import { titleStyle } from './app-bar.mui-styles'
-const InnerAppBar = ({title, onBack, shadowless}) => (
+const InnerAppBar = ({ title, onBack, shadowless, rightIconElement }) => (
   <AppBar
-    style={shadowless ? {boxShadow: 'none'} : undefined}
+    style={shadowless ? { boxShadow: 'none' } : undefined}
     title={title}
     titleStyle={titleStyle}
     iconElementLeft={
@@ -15,13 +15,15 @@ const InnerAppBar = ({title, onBack, shadowless}) => (
         <FontIcon className='material-icons' color='white'>arrow_back</FontIcon>
       </IconButton>
     }
+    iconElementRight={rightIconElement}
   />
 )
 
 InnerAppBar.propTypes = {
   title: PropTypes.string,
   onBack: PropTypes.func.isRequired,
-  shadowless: PropTypes.bool
+  shadowless: PropTypes.bool,
+  rightIconElement: PropTypes.element
 }
 
 export default InnerAppBar

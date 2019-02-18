@@ -6,7 +6,6 @@ import RaisedButton from 'material-ui/RaisedButton'
 import IconButton from 'material-ui/IconButton'
 import _, { negate, flow } from 'lodash'
 import moment from 'moment'
-import themes from '../components/user-themes.mss'
 import { attachmentTextMatcher, placeholderEmailMatcher } from '../../util/matchers'
 import { userInfoItem } from '/imports/util/user.js'
 import { fitDimensions } from '../../util/cloudinary-transformations'
@@ -16,8 +15,7 @@ import { TYPE_CC, TYPE_ASSIGNED } from '../../api/pending-invitations'
 import EditableItem from '../components/editable-item'
 import ErrorDialog from '../dialogs/error-dialog'
 import { infoItemLabel, infoItemMembers, InfoItemContainer, InfoItemRow } from '../util/static-info-rendering'
-
-import { addPersonIconStyle } from './case.mui-styles'
+import AddUserControlLine from '../components/add-user-control-line'
 
 const mediaItemsPadding = 4 // Corresponds with the classNames set to the media items
 const mediaItemRowCount = 3
@@ -66,23 +64,23 @@ class CaseDetails extends Component {
   ]))
 
   handleStatusEdit = val => {
-    const matchingValDef = this.props.cfvDictionary.status.values.find(({name}) => name === val)
+    const matchingValDef = this.props.cfvDictionary.status.values.find(({ name }) => name === val)
     this.setState({
       immediateStatusVal: val
     })
-    const changeSet = {status: val}
+    const changeSet = { status: val }
     if (!matchingValDef.is_open) { // Means it needs a resolution
       changeSet.resolution = 'FIXED' // hardcoded for now
     }
     this.props.onFieldEdit(changeSet)
   }
 
-  renderTitle = ({id, title}) => (
+  renderTitle = ({ id, title }) => (
     <InfoItemContainer>
       <EditableItem
         label={`Case: #${id}`}
         initialValue={title}
-        onEdit={val => this.props.onFieldEdit({title: val})}
+        onEdit={val => this.props.onFieldEdit({ title: val })}
       />
     </InfoItemContainer>
   )
@@ -91,7 +89,7 @@ class CaseDetails extends Component {
 
   renderUnitDescription = unitItem => <InfoItemRow label='Unit description:' value={unitItem.description} />
 
-  renderStatusLine = ({status}, {status: statusDef}) => {
+  renderStatusLine = ({ status }, { status: statusDef }) => {
     const { immediateStatusVal } = this.state
     return (
       <InfoItemContainer>
@@ -100,8 +98,8 @@ class CaseDetails extends Component {
           initialValue={status}
           selectionList={
             statusDef.values
-              .find(({name}) => name === immediateStatusVal)['can_change_to']
-              .map(({name}) => name)
+              .find(({ name }) => name === immediateStatusVal)['can_change_to']
+              .map(({ name }) => name)
               .concat([immediateStatusVal])
           }
           onEdit={this.handleStatusEdit}
@@ -110,14 +108,27 @@ class CaseDetails extends Component {
     )
   }
 
-  renderCategoriesLine = ({category, subCategory}) => (
+  renderCategoriesLine = ({ category, subCategory }) => (
     <InfoItemContainer>
       <div className='flex'>
         <div className='flex-grow'>
-          {infoItemMembers('Category:', category || '---')}
+          {infoItemMembers('Category:', category)}
         </div>
         <div className='flex-grow'>
-          {infoItemMembers('Sub-Category:', subCategory || '---')}
+          {infoItemMembers('Sub-Category:', subCategory)}
+        </div>
+      </div>
+    </InfoItemContainer>
+  )
+
+  renderPrioritySeverityLine = ({ priority, severity }) => (
+    <InfoItemContainer>
+      <div className='flex'>
+        <div className='flex-grow'>
+          {infoItemMembers('Priority:', priority)}
+        </div>
+        <div className='flex-grow'>
+          {infoItemMembers('Severity:', severity)}
         </div>
       </div>
     </InfoItemContainer>
@@ -136,7 +147,7 @@ class CaseDetails extends Component {
     const { match, invitationState, onResetInvitation, onNewUserAssigned, onExistingUserAssigned } = this.props
     const { chosenAssigned } = this.state
     const pendingUsers = pendingInvitations.map(inv => {
-      const { bugzillaCreds: { login }, profile: { name }, emails: [{address: email}] } = inv.inviteeUser()
+      const { bugzillaCreds: { login }, profile: { name }, emails: [{ address: email }] } = inv.inviteeUser()
       return {
         name,
         login,
@@ -158,7 +169,7 @@ class CaseDetails extends Component {
           </Link>
         ))}
         <InviteDialog
-          {...{invitationState, onResetInvitation}}
+          {...{ invitationState, onResetInvitation }}
           onNewUserInvited={onNewUserAssigned}
           basePath={match.url} relPath='assign'
           title='Who should be assigned?'
@@ -167,11 +178,11 @@ class CaseDetails extends Component {
           disableMainOperation={!chosenAssigned || chosenAssigned.login === resolvedAssignedUser.login}
           onMainOperation={() => onExistingUserAssigned(chosenAssigned)}
           additionalOperationText='Assign to someone else'
-          potentialInvitees={normalizedUnitUsers.concat(pendingUsers.map(u => Object.assign({pending: true}, u)))}
-          selectControlsRenderer={({users, inputRefFn}) => (
+          potentialInvitees={normalizedUnitUsers.concat(pendingUsers.map(u => Object.assign({ pending: true }, u)))}
+          selectControlsRenderer={({ users, inputRefFn }) => (
             <UsersSearchList
               users={users}
-              onUserClick={user => this.setState({chosenAssigned: user})}
+              onUserClick={user => this.setState({ chosenAssigned: user })}
               searchInputRef={inputRefFn}
               userClassNames={user => user.login === resolvedChosenAssigned.login ? 'bg-very-light-gray' : ''}
               emptyListMessage={'We couldn\'t find any existing users to assign'}
@@ -195,7 +206,7 @@ class CaseDetails extends Component {
   }
 
   renderPeopleInvolved = (
-    caseItem, unitItem, {creator, assignee, subscribed}, normalizedUnitUsers, pendingInvitations,
+    caseItem, unitItem, { creator, assignee, subscribed }, normalizedUnitUsers, pendingInvitations,
     successAdded, addUsersError
   ) => {
     const {
@@ -222,14 +233,11 @@ class CaseDetails extends Component {
         )))}
         {pendingUsers.map((user, ind) => userInfoItem(user, () => <span className='f7 warn-crimson b'>Pending</span>))}
         <Link to={`${match.url}/invite`}
-          className='mt2 link flex items-center outline-0'>
-          <div className={[themes.sized, themes.size1, 'br-100 ba b--moon-gray bg-transparent tc'].join(' ')}>
-            <FontIcon className='material-icons' style={addPersonIconStyle}>person_add</FontIcon>
-          </div>
-          <div className='ml2 pl1 bondi-blue'>Invite users to case</div>
+          className='mt2 link outline-0 db'>
+          <AddUserControlLine instruction='Invite users to case' />
         </Link>
         <InviteDialog
-          {...{onNewUserInvited, invitationState}}
+          {...{ onNewUserInvited, invitationState }}
           basePath={match.url} relPath='invite'
           title='Who should be invited?'
           onMainOperation={() => {
@@ -277,7 +285,7 @@ class CaseDetails extends Component {
               />
             </div>
           )}
-          selectControlsRenderer={({users, inputRefFn}) => (
+          selectControlsRenderer={({ users, inputRefFn }) => (
             <UsersSearchList
               users={users}
               onUserClick={user => this.setState({
@@ -303,8 +311,8 @@ class CaseDetails extends Component {
           show={!!addUsersError}
           text={
             addUsersError
-            ? ('We couldn\'t add these users to this case due to: ' + addUsersError.error)
-            : ''
+              ? ('We couldn\'t add these users to this case due to: ' + addUsersError.error)
+              : ''
           }
           onDismissed={onClearRoleUsersState}
         />
@@ -327,12 +335,12 @@ class CaseDetails extends Component {
           <EditableItem
             label='Solution'
             initialValue={solution}
-            onEdit={val => onFieldEdit({solution: val})}
+            onEdit={val => onFieldEdit({ solution: val })}
             isMultiLine
           />
           {solutionDeadline && (
             <div className='mt2 f7 warn-crimson b'>
-              Deadline: {moment(solutionDeadline).format('D MMM YYYY, h:mm')} hrs
+              Deadline: {moment(solutionDeadline).format('YYYY-MM-DD, h:mm')} hrs
             </div>
           )}
         </InfoItemContainer>
@@ -340,12 +348,12 @@ class CaseDetails extends Component {
           <EditableItem
             label='Next steps'
             initialValue={nextSteps}
-            onEdit={val => onFieldEdit({nextSteps: val})}
+            onEdit={val => onFieldEdit({ nextSteps: val })}
             isMultiLine
           />
           {solutionDeadline && (
             <div className='mt2 f7 warn-crimson b'>
-              Deadline: {moment(nextStepsBy).format('D MMM YYYY, h:mm')} hrs
+              Deadline: {moment(nextStepsBy).format('YYYY-MM-DD, h:mm')} hrs
             </div>
           )}
         </InfoItemContainer>
@@ -368,6 +376,7 @@ class CaseDetails extends Component {
         {this.renderUnitDescription(unitItem)}
         {this.renderStatusLine(caseItem, cfvDictionary)}
         {this.renderCategoriesLine(caseItem)}
+        {this.renderPrioritySeverityLine(caseItem)}
         {this.renderCreatedBy(caseUserTypes.creator)}
         {this.renderAssignedTo(caseUserTypes.assignee, normalizedUnitUsers, pendingInvitations)}
         {this.renderPeopleInvolved(

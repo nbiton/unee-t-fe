@@ -1,3 +1,5 @@
+// nbiton- deprecated on Jan 4 2018. Remove if it remains this way for a long time
+
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
 import Dialog from 'material-ui/Dialog'
@@ -47,7 +49,7 @@ class WelcomeDialog extends Component {
         </button>
         <div className='pt3 overflow-auto'>
           <div className='tc'>
-            <UneeTIcon isDarkType style={{width: 67, height: 67}} />
+            <UneeTIcon isDarkType style={{ width: 67, height: 67 }} />
             <div className='mt2 pt1 bondi-blue f3 fw5'>
               Welcome to Unee&#8209;T!
             </div>
@@ -56,7 +58,7 @@ class WelcomeDialog extends Component {
             {invitedByDetails ? invitedByDetails.name : ''} has invited you to collaborate on the case&nbsp;
             <span className='b'>
             "#{caseId} - {caseSummary}"
-          </span>
+            </span>
             &nbsp;in&nbsp;
             <span className='b'>
               {unitName}

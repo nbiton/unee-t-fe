@@ -5,6 +5,8 @@ import putPendingInvitations from './put-pending-invitations'
 import getInvitations from './get-invitations'
 import getConvertedInvitations from './get-converted-invitations'
 import postProcessDbChangeMessage from './post-process-db-change-message'
+import postSesNotification from './post-ses-notification'
+import getPdfDownload from './get-pdf-download'
 
 JsonRoutes.Middleware.use(json())
 JsonRoutes.Middleware.use((req, res, next) => {
@@ -29,3 +31,5 @@ createRoute('get', '/invitations', getInvitations)
 createRoute('get', '/converted-invitations', getConvertedInvitations)
 createRoute('put', '/pending-invitations/done', putPendingInvitations)
 createRoute('post', '/db-change-message/process', postProcessDbChangeMessage)
+createRoute('post', '/ses', postSesNotification)
+createRoute('get', '/report-pdf-download', getPdfDownload)

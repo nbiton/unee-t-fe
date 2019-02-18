@@ -16,7 +16,7 @@ import 'rxjs/add/operator/switchMap'
 
 export const fetchInvitationCredentials = action$ => action$
   .ofType(FETCH_INVITATION_CREDENTIALS)
-  .switchMap(({code}) => {
+  .switchMap(({ code }) => {
     const meteorResult$ = new Subject()
     Meteor.call('users.invitationLogin', code, (error, result) => {
       if (error) {
@@ -27,7 +27,7 @@ export const fetchInvitationCredentials = action$ => action$
         meteorResult$.complete()
         return
       }
-      const { email, pw, caseId, invitedByDetails } = result
+      const { email, pw, caseId, unitId, invitedByDetails } = result
       meteorResult$.next({
         type: LOGIN_INVITATION_CREDENTIALS
       })
@@ -40,10 +40,14 @@ export const fetchInvitationCredentials = action$ => action$
         } else {
           meteorResult$.next({
             type: SUCCESS_INVITATION_CREDENTIALS,
-            showWelcomeMessage: !Meteor.user().profile.name,
+            // showWelcomeMessage: !Meteor.user().profile.name,
             invitedByDetails
           })
-          meteorResult$.next(push(`/case/${caseId}`))
+          if (caseId) { // Invitation to a case
+            meteorResult$.next(push(`/case/${caseId}`))
+          } else {
+            meteorResult$.next(push(`/unit/${unitId}`))
+          }
         }
         meteorResult$.complete()
       })

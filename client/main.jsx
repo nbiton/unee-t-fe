@@ -7,19 +7,33 @@ import { ConnectedRouter } from 'react-router-redux'
 import { Accounts } from 'meteor/accounts-base'
 
 import { Provider } from 'react-redux'
+import _ from 'lodash'
 import { Store, history } from '../imports/state/store'
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider'
 import theme from '../imports/mui-theme/unee-t-theme'
 
-Meteor.startup(() => render((
-  <MuiThemeProvider muiTheme={theme}>
-    <Provider store={Store}>
-      <ConnectedRouter history={history}>
-        <App />
-      </ConnectedRouter>
-    </Provider>
-  </MuiThemeProvider>
-), document.querySelector('#app')))
+Meteor.startup(() => {
+  try {
+    document.domain = 'unee-t.com'
+  } catch (e) {
+    console.warn('Not running on unee-t.com, some cross iframe issues might occur')
+  }
+  if (history.length === 1) {
+    const currLocation = history.location
+    console.log('Injecting base route to new tab')
+    history.replace('/')
+    history.push(currLocation.pathname + currLocation.search)
+  }
+  return render((
+    <MuiThemeProvider muiTheme={theme}>
+      <Provider store={Store}>
+        <ConnectedRouter history={history}>
+          <App />
+        </ConnectedRouter>
+      </Provider>
+    </MuiThemeProvider>
+  ), document.querySelector('#app'))
+})
 
 // This snippet is in charge of logging in an invited user for the first time, and assigning a temporary password
 // NOTE: This has to be in top level code, before the startup callback is triggered
@@ -34,10 +48,33 @@ Accounts.onEnrollmentLink((token, done) => {
       if (user) {
         cmp.stop()
         if (user.profile.invitedToCase) {
-          const {caseId} = user.profile.invitedToCase
+          const { caseId } = user.profile.invitedToCase
           history.push(`/case/${caseId}`)
         }
       }
     })
   })
 })
+Accounts.onEmailVerificationLink((token, done) => {
+  Accounts.verifyEmail(token, err => {
+    if (err) {
+      console.error(err)
+    } else {
+      done()
+    }
+  })
+})
+
+// Top level code for mobile viewport full height fix
+// Inspired by: https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
+function calcCustomVhVar () {
+  const vh = window.innerHeight * 0.01
+  document.documentElement.style.setProperty('--vh', `${vh}px`)
+}
+
+window.onload = () => {
+  calcCustomVhVar()
+}
+window.addEventListener('resize', _.throttle(() => {
+  calcCustomVhVar()
+}, 250))
