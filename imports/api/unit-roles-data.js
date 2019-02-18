@@ -133,8 +133,8 @@ Meteor.methods({
 
       // Extra check to avoid critical future usability issues
       const unitOwners = UnitMetaData.findOne({ bzId: unitBzId }, { ownerIds: 1 }).ownerIds
-      if (!unitOwners.includes(Meteor.userId()) && unitOwners.includes(userToRemove._id)) {
-        throw new Meteor.Error('You can\'t remove an owner of the unit if you\'re not an owner yourself')
+      if (!unitOwners.includes(Meteor.userId())) {
+        throw new Meteor.Error('You can\'t remove users from the unit if you\'re not an owner of this unit')
       }
 
       const { invitationId } = userToRemove.receivedInvites.find(i => i.unitId === unitBzId)
