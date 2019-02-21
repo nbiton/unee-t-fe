@@ -44,6 +44,14 @@ export const caseServerFieldMapping = {
   additionalComments: 'whiteboard'
 }
 
+export const severityIndex = [
+  'DEAL BREAKER!',
+  'critical',
+  'major',
+  'normal',
+  'minor'
+]
+
 export const REPORT_KEYWORD = 'inspection_report'
 export const REPORT_ROOM_KEYWORD = 'room'
 export const REPORT_ITEM_KEYWORD = 'item'
