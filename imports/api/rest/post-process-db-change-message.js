@@ -3,28 +3,23 @@ import { Email } from 'meteor/email'
 import crypto from 'crypto'
 import MessagePayloads from '../message-payloads'
 import CaseNotifications from '../case-notifications'
+import NotificationSettingsOverrides from '../notification-settings-overrides'
 import caseAssigneeUpdateTemplate from '../../email-templates/case-assignee-updated'
 import caseUpdatedTemplate from '../../email-templates/case-updated'
 import caseNewMessageTemplate from '../../email-templates/case-new-message'
 import caseUserInvitedTemplate from '../../email-templates/case-user-invited'
 import { logger } from '../../util/logger'
+import UnitRolesData from '../unit-roles-data'
 
 const updatedWhatWhiteList = [
+  'Status',
+  'Severity',
   'Unit',
   'Role',
-  'Component',
-  'Product',
-  'Severity',
-  'Priority',
-  'Platform',
-  'Case Category',
-  'Summary',
   'Next Step',
-  'AssignedTo',
-  'Resolution',
+  'Next Step Date',
   'Solution',
-  'Status',
-  'CC'
+  'Deadline'
 ]
 
 function getUserByBZId (idStr) {
@@ -96,7 +91,7 @@ export default (req, res) => {
     notification_id: notificationId
   } = message
 
-  let userIds, emailTemplateParams, emailTemplateFn, objectTemplate
+  let userIds, emailTemplateParams, emailTemplateFn, objectTemplate, settingSubType
   switch (type) {
     case 'case_assignee_updated':
       // https://github.com/unee-t/sns2email/issues/2
@@ -123,6 +118,17 @@ export default (req, res) => {
           content: message.message_truncated
         }
       }
+
+      // Finding the creator's role (if updated properly in Mongo)
+      const creatorRole = UnitRolesData.findOne({
+        unitBzId: parseInt(unitId),
+        'members.id': creator._id
+      })
+
+      // If the creator's role is found, it is mapped to the setting sub type, as they correspond directly
+      if (creatorRole) {
+        settingSubType = creatorRole.roleType
+      }
       break
 
     case 'case_updated':
@@ -142,6 +148,11 @@ export default (req, res) => {
           fieldName: message.update_what
         }
       }
+      if (['Solution', 'Deadline'].includes(message.update_what)) {
+        settingSubType = message.update_what
+      }
+
+      // TODO: find out how this piece of code should know if "status" has changed to "resolved"
       break
 
     case 'case_user_invited':
@@ -156,6 +167,17 @@ export default (req, res) => {
       res.send(400)
       return
   }
+
+  // Getting the setting type to check via static mapping
+  const settingType = settingTypeMapping[type]
+  let logMsg
+  if (settingSubType) {
+    logMsg = `Checking and assembling notification of type '${settingType}' and sub type '${settingSubType}' for each user`
+  } else {
+    logMsg = `Checking and assembling notification of type '${settingType}' for each user`
+  }
+  logger.info(logMsg)
+
   ;(new Set(userIds)).forEach(userId => {
     const recipient = getUserByBZId(userId)
     if (!recipient) {
@@ -179,8 +201,75 @@ export default (req, res) => {
       logger.error(`User with bz id ${userId} has no verified email address, skipping notification`)
       return
     }
-    const settingType = settingTypeMapping[type]
-    if (!recipient.notificationSettings[settingType]) {
+
+    // Recursively resolving whether a specific main/sub setting overrides (case/ unit) are set for this user/notification
+    let settingOverride = (function checkLevel (matcherLevels, overrides = {}) {
+      const currLevel = matcherLevels.shift() // Removing the first "matcher" in line
+
+      // Using the current level matcher to find the corresponding override for the user
+      const notifOverride = NotificationSettingsOverrides.findOne({ userBzId: parseInt(userId), ...currLevel })
+
+      // Checking if the override doc was defined for the user+matcher
+      if (notifOverride) {
+        // Checking if the main setting in question wasn't resolved from a prior level and is defined on this user+matcher doc
+        if (
+          typeof overrides.main === 'undefined' && typeof notifOverride.settings[settingType] !== 'undefined'
+        ) {
+          // Setting "main" to overrides from the user+matcher doc definition
+          overrides.main = notifOverride.settings[settingType]
+          logger.info(`A setting override for '${settingType}' notification was found for user ${userId} at ${JSON.stringify(currLevel)}`)
+        }
+
+        // Checking if a setting sub type is used AND an override from a lower level was not found yet AND it is defined on this level
+        if (
+          settingSubType &&
+          typeof overrides.sub === 'undefined' &&
+          typeof notifOverride.settings[`${settingType}_types`] === 'object' &&
+          typeof notifOverride.settings[`${settingType}_types`][settingSubType] !== 'undefined'
+        ) {
+          // Setting "sub" to overrides from the user+matcher doc definition
+          overrides.sub = notifOverride.settings[`${settingType}_types`][settingSubType]
+          logger.info(`A sub type setting override for '${settingSubType}' notification was found for user ${userId} at ${JSON.stringify(currLevel)}`)
+        }
+      }
+
+      // Checking if no more levels to check remain OR an override definition was found for both "main" and "sub" (if required) flags
+      if (
+        matcherLevels.length === 0 || (
+          typeof overrides.main !== 'undefined' && (typeof overrides.sub !== 'undefined' || !settingSubType)
+        )
+      ) {
+        return overrides
+      } else {
+        // Checking the next level, but using the current "overrides" in case just one of the main/sub defs were found and the next could be in a higher level
+        return checkLevel(matcherLevels, overrides)
+      }
+    })([ // The matcher levels from low to high (low should take precedence)
+      { caseId: parseInt(caseId) },
+      { unitBzId: parseInt(unitId) }
+    ])
+
+    // If an override for the main setting was found, using it. Otherwise, using the global def
+    const mainSettingEnabled = typeof settingOverride.main !== 'undefined'
+      ? settingOverride.main
+      : recipient.notificationSettings[settingType]
+
+    // A flag that should be "true" if no sub type is needed to be checked for this notification OR it is and is set to "true"
+    let subSettingCheckPassed
+
+    // Checking if a sub type check is needed. If not, giving the check a "pass" (written in more drawn out way to make it more coherent)
+    if (settingSubType) {
+      // If an override for the sub setting was found, using it. Otherwise, using the global def
+      subSettingCheckPassed = typeof settingOverride.sub !== 'undefined'
+        ? settingOverride.sub
+        : recipient.notificationSettings[`${settingType}_types`][settingSubType]
+    } else {
+      subSettingCheckPassed = true
+    }
+
+    // The notification is determined to be enabled for this user in this scenario if both the main setting is enabled and the sub setting check has passed
+    const notificationEnabled = mainSettingEnabled && subSettingCheckPassed
+    if (!notificationEnabled) {
       logger.info(
         `Skipping ${recipient.bugzillaCreds.login} as opted out from '${settingType}' notifications.`
       )
