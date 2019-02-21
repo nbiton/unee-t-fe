@@ -22,6 +22,13 @@ const updatedWhatWhiteList = [
   'Deadline'
 ]
 
+const updateWhatSettingMapping = {
+  'Next Step': 'Next Step',
+  'Next Step Date': 'Next Step',
+  'Solution': 'Solution',
+  'Deadline': 'Deadline'
+}
+
 function getUserByBZId (idStr) {
   return Meteor.users.findOne({ 'bugzillaCreds.id': parseInt(idStr) })
 }
@@ -148,8 +155,8 @@ export default (req, res) => {
           fieldName: message.update_what
         }
       }
-      if (['Solution', 'Deadline'].includes(message.update_what)) {
-        settingSubType = message.update_what
+      if (['Solution', 'Deadline', 'Next Step', 'Next Step Date'].includes(message.update_what)) {
+        settingSubType = updateWhatSettingMapping[message.update_what]
       }
 
       // TODO: find out how this piece of code should know if "status" has changed to "resolved"

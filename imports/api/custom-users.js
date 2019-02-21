@@ -43,6 +43,7 @@ export const baseUserSchema = Object.freeze({
     caseNewMessage: true,
     caseUpdate: false,
     caseUpdate_types: {
+      'Next Step': true,
       'Solution': true,
       'Deadline': true,
       'StatusResolved': true

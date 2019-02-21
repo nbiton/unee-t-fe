@@ -7,6 +7,7 @@ Migrations.add({
     Meteor.users.update({}, {
       $set: {
         'notificationSettings.caseUpdate_types': {
+          'Next Step': true,
           'Solution': true,
           'Deadline': true,
           'StatusResolved': true
