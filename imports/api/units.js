@@ -51,7 +51,7 @@ const unitAssocHelper = (coll, collName, idFieldName) => fields => withDocs({
     coll.find({
       [idFieldName]: publishedItem.id
     }, {
-      fields: typeof fields === 'function' ? fields(userId) : fields // If 'fields' is a function, call it with userId
+      fields: typeof fields === 'function' ? fields(userId, publishedItem) : fields // If 'fields' is a function, call it with userId
     }),
   collectionName: collName
 })
@@ -63,6 +63,9 @@ export const getUnitRoles = unit => {
   // Resolving roles via the newer mongo collection
   const roleDocs = UnitRolesData.find({ unitBzId: unit.id }).fetch()
 
+  roleDocs.forEach(doc => {
+    doc.members = doc.members || [] // Patching it to protect against empty member arrays because of the selective projection
+  })
   // Prefetching all user docs to optimize query performance (single query vs one for each user)
   const userIds = roleDocs.reduce((all, roleObj) => all.concat(roleObj.members.map(mem => mem.id)), [])
   const userDocs = Meteor.users.find({ _id: { $in: userIds } }).fetch()
@@ -232,6 +235,31 @@ export const addUserToRole = (invitingUser, inviteeUser, unitBzId, role, invType
   }
 }
 
+const rolesProjByOwnership = (userId, unitItem) => {
+  const unitMeta = UnitMetaData.findOne({
+    bzId: unitItem.id
+  })
+  if (unitMeta.ownerIds.includes(userId)) {
+    return {
+      unitBzId: 1,
+      roleType: 1,
+      members: 1,
+      defaultAssigneeId: 1
+    }
+  } else {
+    return {
+      unitBzId: 1,
+      roleType: 1,
+      defaultAssigneeId: 1,
+      members: {
+        $elemMatch: {
+          isVisible: true
+        }
+      }
+    }
+  }
+}
+
 export let pubObj
 if (Meteor.isServer) {
   pubObj = publicationFactory(factoryOptions)
@@ -304,11 +332,7 @@ if (Meteor.isServer) {
           },
           disabled: 1
         }))),
-        withRolesData({
-          unitBzId: 1,
-          roleType: 1,
-          members: 1
-        })
+        withRolesData(rolesProjByOwnership)
       ],
       funcName,
       uriBuilder
@@ -343,7 +367,7 @@ if (Meteor.isServer) {
       displayName: 1,
       unitType: 1
     }),
-    withRolesData({})
+    withRolesData(rolesProjByOwnership)
   ]
   const rolesFieldsParams = {
     include_fields: 'name,id,components' // 'components' is only added as a fallback in case the roles are missing
