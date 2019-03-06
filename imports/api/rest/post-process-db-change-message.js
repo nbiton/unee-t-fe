@@ -303,7 +303,7 @@ export default (req, res) => {
       (mainSettingEnabled && subSettingCheckPassed)
     if (!notificationEnabled) {
       logger.info(
-        `Skipping ${recipient.bugzillaCreds.login} as opted out from '${settingType}' notifications` + (settingSubType ? ` with '${settingSubType}' sub type`: '')
+        `Skipping ${recipient.bugzillaCreds.login} as opted out from '${settingType}' notifications` + (settingSubType ? ` with '${settingSubType}' sub type` : '')
       )
     } else {
       const emailContent = emailTemplateFn(...[recipient, notificationId, settingType].concat(emailTemplateParams))
