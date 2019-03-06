@@ -175,7 +175,7 @@ export default (req, res) => {
       })
     }
 
-    if (!recipient.emails[0].verified) {
+    if (!recipient.emails[0].verified || !recipient.emails[0].invalid) {
       logger.error(`User with bz id ${userId} has no verified email address, skipping notification`)
       return
     }
