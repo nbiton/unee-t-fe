@@ -58,7 +58,7 @@ export const REPORT_ITEM_KEYWORD = 'item'
 
 const REPORT_EL_TYPES = [REPORT_KEYWORD, REPORT_ITEM_KEYWORD, REPORT_ROOM_KEYWORD]
 
-const CLOSED_STATUS_TYPES = ['RESOLVED', 'VERIFIED', 'CLOSED']
+export const CLOSED_STATUS_TYPES = ['RESOLVED', 'VERIFIED', 'CLOSED']
 export const isClosed = caseItem => CLOSED_STATUS_TYPES.includes(caseItem.status)
 
 export const caseClientFieldMapping = Object.assign(

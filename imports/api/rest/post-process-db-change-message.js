@@ -10,6 +10,7 @@ import caseNewMessageTemplate from '../../email-templates/case-new-message'
 import caseUserInvitedTemplate from '../../email-templates/case-user-invited'
 import { logger } from '../../util/logger'
 import UnitRolesData from '../unit-roles-data'
+import { CLOSED_STATUS_TYPES, severityIndex } from '../cases'
 
 const updatedWhatWhiteList = [
   'Status',
@@ -159,6 +160,16 @@ export default (req, res) => {
         settingSubType = updateWhatSettingMapping[message.update_what]
       }
 
+      if (message.update_what === 'Status') {
+        if (!CLOSED_STATUS_TYPES.includes(message.old_value) && CLOSED_STATUS_TYPES.includes(message.new_value)) {
+          settingSubType = 'StatusResolved'
+        } else {
+          logger.info(`Ignoring "case_updated" notification type with "Status" update subject when the case is hasn't changed to a resolved status`)
+          res.send(200)
+          return
+        }
+      }
+
       // TODO: find out how this piece of code should know if "status" has changed to "resolved"
       break
 
@@ -238,12 +249,21 @@ export default (req, res) => {
           overrides.sub = notifOverride.settings[`${settingType}_types`][settingSubType]
           logger.info(`A sub type setting override for '${settingSubType}' notification was found for user ${userId} at ${JSON.stringify(currLevel)}`)
         }
+
+        if (
+          typeof overrides.severityOverrideThreshold === 'undefined' &&
+          typeof notifOverride.settings.severityOverrideThreshold !== 'undefined'
+        ) {
+          overrides.severityOverrideThreshold = notifOverride.settings.severityOverrideThreshold
+        }
       }
 
-      // Checking if no more levels to check remain OR an override definition was found for both "main" and "sub" (if required) flags
+      // Checking if no more levels to check remain OR an override definition was found for all "main", "sub" (if required) and "severityOverrideThreshold" flags
       if (
         matcherLevels.length === 0 || (
-          typeof overrides.main !== 'undefined' && (typeof overrides.sub !== 'undefined' || !settingSubType)
+          typeof overrides.main !== 'undefined' &&
+          (typeof overrides.sub !== 'undefined' || !settingSubType) &&
+          typeof overrides.severityOverrideThreshold !== 'undefined'
         )
       ) {
         return overrides
@@ -274,11 +294,16 @@ export default (req, res) => {
       subSettingCheckPassed = true
     }
 
+    const severityOverrideThreshold = typeof settingOverride.severityOverrideThreshold !== 'undefined'
+      ? settingOverride.severityOverrideThreshold
+      : recipient.notificationSettings.severityOverrideThreshold
+
     // The notification is determined to be enabled for this user in this scenario if both the main setting is enabled and the sub setting check has passed
-    const notificationEnabled = mainSettingEnabled && subSettingCheckPassed
+    const notificationEnabled = (severityOverrideThreshold && severityIndex.indexOf(message.current_severity) <= severityIndex.indexOf(severityOverrideThreshold)) ||
+      (mainSettingEnabled && subSettingCheckPassed)
     if (!notificationEnabled) {
       logger.info(
-        `Skipping ${recipient.bugzillaCreds.login} as opted out from '${settingType}' notifications.`
+        `Skipping ${recipient.bugzillaCreds.login} as opted out from '${settingType}' notifications` + (settingSubType ? ` with '${settingSubType}' sub type`: '')
       )
     } else {
       const emailContent = emailTemplateFn(...[recipient, notificationId, settingType].concat(emailTemplateParams))
