@@ -175,10 +175,19 @@ export default (req, res) => {
       })
     }
 
-    if (!recipient.emails[0].verified || recipient.emails[0].invalid) {
+    let emailPrevented
+    if (!recipient.emails[0].verified) {
       logger.error(`User with bz id ${userId} has no verified email address, skipping notification`)
-      return
+      emailPrevented = true
     }
+
+    if (recipient.emails[0].invalid) {
+      logger.error(`User with bz id ${userId} has an invalid email address (bounced) of '${recipient.emails[0].address}', skipping notification`)
+      emailPrevented = true
+    }
+
+    if (emailPrevented) return
+
     const settingType = settingTypeMapping[type]
     if (!recipient.notificationSettings[settingType]) {
       logger.info(
