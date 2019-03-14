@@ -415,7 +415,7 @@ export function createUnitItem (creatorId, name, type, moreInfo = '', streetAddr
       logger.error({
         user: Meteor.userId(),
         method: `${collectionName}.insert`,
-        args: [creationArgs],
+        args: [creatorId, name, type, moreInfo, streetAddress, city, state, zipCode, country, ownerId],
         step: 'UNIT CREATE lambda request',
         error: e
       })
@@ -461,7 +461,7 @@ export function createUnitItem (creatorId, name, type, moreInfo = '', streetAddr
           logger.error({
             user: Meteor.userId(),
             method: `${collectionName}.insert`,
-            args: [creationArgs],
+            args: [creatorId, name, type, moreInfo, streetAddress, city, state, zipCode, country, ownerId],
             step: 'Fetching unit data for live update, proceeding with no error',
             error: e
           })
