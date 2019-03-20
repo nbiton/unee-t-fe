@@ -32,15 +32,12 @@ function createUserHandler (payload, res) {
     check(emailAddress, String, 'emailAddress must be a string')
     const existingUser = Accounts.findUserByEmail(emailAddress)
     if (existingUser) {
-      if (creatorId && existingUser.profile.creatorId === creatorId) {
-        res.send(200, {
-          userId: existingUser._id,
-          timestamp: existingUser.createdAt.toISOString()
-        })
-        return
-      } else {
-        res.send(403, `Can't create a duplicate user for email "${emailAddress}"`)
-      }
+      res.send(200, {
+        userId: existingUser._id,
+        creatorId: existingUser.profile.creatorId,
+        timestamp: existingUser.createdAt.toISOString()
+      })
+      return
     }
     const profileObj = {
       isLimited: true
@@ -74,6 +71,7 @@ function createUserHandler (payload, res) {
     const userId = Accounts.createUser(userObject)
     res.send(201, {
       userId,
+      creatorId,
       timestamp: (new Date()).toISOString()
     })
   } catch (e) {
