@@ -28,7 +28,8 @@ export const defaultRoleVisibility = {
   'Owner/Landlord': true,
   'Contractor': true,
   'Management Company': true,
-  'Agent': true
+  'Agent': true,
+  'Occupant': true
 }
 
 if (Meteor.isServer) {
