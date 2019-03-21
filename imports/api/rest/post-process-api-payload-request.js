@@ -39,7 +39,7 @@ function createUserHandler (payload, res) {
     if (existingUser) {
       res.send(200, {
         userId: existingUser._id,
-        creatorId: existingUser.profile.creatorId,
+        isCreator: existingUser.profile.creatorId === creatorId,
         timestamp: existingUser.createdAt.toISOString()
       })
       return
@@ -76,7 +76,7 @@ function createUserHandler (payload, res) {
     const userId = Accounts.createUser(userObject)
     res.send(201, {
       userId,
-      creatorId,
+      isCreator: true,
       timestamp: (new Date()).toISOString()
     })
   } catch (e) {
