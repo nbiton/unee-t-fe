@@ -87,7 +87,7 @@ function createUserHandler (payload, res) {
 
 function assignRoleHandler (payload, res) {
   const {
-    requestorUserId, addedUserId, unitId, roleType, isOccupant, isVisible, isDefaultInvited, roleVisibility
+    requestorUserId, addedUserId, unitId, roleType, isOccupant, isVisible, isDefaultInvited, roleVisibility, isDefaultAssignee
   } = payload
 
   const errorLog = 'API payload request for ASSIGN_ROLE failed: '
@@ -114,7 +114,7 @@ function assignRoleHandler (payload, res) {
   }
   try {
     inviteUserToRole(
-      requestorUserId, unitId, inviteeUser, roleType, isOccupant, isVisible, isDefaultInvited, roleVisibility, {
+      requestorUserId, unitId, inviteeUser, roleType, isOccupant, isVisible, isDefaultInvited, roleVisibility, isDefaultAssignee, {
         apiRequestType: 'ASSIGN_ROLE',
         payload
       }
