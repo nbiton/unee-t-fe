@@ -137,7 +137,13 @@ export default (req, res) => {
     return
   }
 
-  const payload = req.body
+  // Helps to ignore null values
+  const payload = Object.keys(req.body).reduce((all, key) => {
+    if (req.body[key] !== null) {
+      all[key] = req.body[key]
+    }
+    return all
+  }, {})
 
   switch (payload.actionType) {
     case 'CREATE_UNIT':
