@@ -93,7 +93,7 @@ function assignRoleHandler (payload, res) {
     isDefaultInvited: !!payload.isDefaultInvited,
     isDefaultAssignee: !!payload.isDefaultAssignee,
     roleVisibility: Object.keys(payload.roleVisibility).reduce((all, key) => {
-      all[key] = !!payload.roleVisibility
+      all[key] = !!payload.roleVisibility[key]
       return all
     }, {})
   })
