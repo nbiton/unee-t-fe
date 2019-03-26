@@ -86,6 +86,18 @@ function createUserHandler (payload, res) {
 }
 
 function assignRoleHandler (payload, res) {
+  // Handling faulty boolean values sent by the API consumer and coercing them to be normal boolean values
+  Object.assign(payload, {
+    isOccupant: !!payload.isOccupant,
+    isVisible: !!payload.isVisible,
+    isDefaultInvited: !!payload.isDefaultInvited,
+    isDefaultAssignee: !!payload.isDefaultAssignee,
+    roleVisibility: Object.keys(payload.roleVisibility).reduce((all, key) => {
+      all[key] = !!payload.roleVisibility
+      return all
+    }, {})
+  })
+
   const {
     requestorUserId, addedUserId, unitId, roleType, isOccupant, isVisible, isDefaultInvited, roleVisibility, isDefaultAssignee
   } = payload
