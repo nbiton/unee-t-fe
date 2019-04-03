@@ -292,7 +292,6 @@ const rolesSelectionByOwnership = (userId, unitItem) => {
   if (unitMeta.ownerIds.includes(userId)) { // An owner can see all roles
     return {}
   } else {
-
     // Finding this user's role member definition
     const meRole = UnitRolesData.findOne({
       unitBzId: unitItem.id,
@@ -317,41 +316,6 @@ const rolesSelectionByOwnership = (userId, unitItem) => {
         $in: types
       }
     }
-    // const meUser = Meteor.users.findOne({ _id: userId })
-
-    // // TODO: figure out a less lame way to do this
-    // const ownerInvitor = (function getOwnerInvitor (user) {
-    //   const inv = PendingInvitations.findOne({
-    //     unitId: unitItem.id,
-    //     invitee: user.bugzillaCreds.id,
-    //     done: true
-    //   })
-    //
-    //   if (!inv || inv.invitedBy === user.bugzillaCreds.id) return null
-    //
-    //   const invitor = Meteor.users.findOne({
-    //     'bugzillaCreds.id': inv.invitedBy
-    //   })
-    //   console.log('invitor', invitor.emails[0].address)
-    //
-    //   if (unitMeta.ownerIds.includes(invitor._id)) {
-    //     return invitor
-    //   } else {
-    //     return getOwnerInvitor(invitor)
-    //   }
-    // })(meUser)
-    //
-    // if (ownerInvitor) {
-    //   return {
-    //     'members.id': {
-    //       $in: [userId, ownerInvitor._id]
-    //     }
-    //   }
-    // } else { // Won't happen if all the roles data is setup correctly, but likely to happen in testing envs now and then
-    //   return {
-    //     'members.id': userId
-    //   }
-    // }
   }
 }
 

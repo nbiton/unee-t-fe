@@ -35,7 +35,6 @@ import {
   controlLabelStyle
 } from '../components/form-controls.mui-styles'
 
-
 class CaseWizard extends Component {
   constructor () {
     super(...arguments)
