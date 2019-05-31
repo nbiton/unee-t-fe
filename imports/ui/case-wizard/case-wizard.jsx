@@ -96,7 +96,7 @@ class CaseWizard extends Component {
 
   handleRoleChanged = (evt, val) => {
     const { inputValues } = this.state
-    const { default_assigned_to: assignedTo } = this.props.unitItem.components.find(({ name }) => name === val)
+    const needsNewUser = !this.props.availableRoles.find(role => role.type === val).hasDefaultAssignee
 
     this.setState({
       inputValues: Object.assign({}, inputValues, {
@@ -104,7 +104,7 @@ class CaseWizard extends Component {
           assignedUnitRole: val
         })
       }),
-      needsNewUser: placeholderEmailMatcher(assignedTo),
+      needsNewUser,
       newUserCanBeOccupant: roleCanBeOccupantMatcher(val),
       newUserIsOccupant: false
     })
