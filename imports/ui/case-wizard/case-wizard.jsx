@@ -65,7 +65,7 @@ class CaseWizard extends Component {
     }
     const { availableRoles } = this.props
     const { inputValues } = this.state
-    if (availableRoles && prevProps.availableRoles === null) {
+    if (availableRoles.length && !prevProps.availableRoles.length) {
       const defaultRole = availableRoles.find(roleObj => roleObj.assignedToYou).type
       this.setState({
         inputValues: Object.assign({}, inputValues, {
