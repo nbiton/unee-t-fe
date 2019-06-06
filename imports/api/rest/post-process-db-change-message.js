@@ -38,12 +38,21 @@ function getUserByBZId (idStr) {
 const fromEmail = process.env.FROM_EMAIL
 const emailDomain = process.env.STAGE ? `case.${process.env.STAGE}.${process.env.DOMAIN}` : `case.${process.env.DOMAIN}`
 
-function sendEmail (assignee, emailContent, notificationId, responseBugId) {
+function sendEmail (assignee, emailContent, notificationId, responseBugId, unitCreator) {
   const emailAddr = assignee.emails[0].address
   const bzId = assignee.bugzillaCreds.id
+
+  let fromEmailVariant = fromEmail
+  if (unitCreator && unitCreator.customEmailBrandingConfig && unitCreator.customEmailBrandingConfig.brandName) {
+    const { brandName } = unitCreator.customEmailBrandingConfig
+    const matchAddress = fromEmail.match(/<(.*@.*)>$/)
+    const justEmailAddress = matchAddress ? matchAddress[1] : fromEmail
+    fromEmailVariant = `Unee-T for ${brandName}<${justEmailAddress}>`
+  }
+
   const emailProps = {
     to: emailAddr,
-    from: fromEmail
+    from: fromEmailVariant
   }
 
   if (responseBugId) {
@@ -105,6 +114,8 @@ export default (req, res) => {
     streetAddress: 'Unknown'
   }
 
+  const unitCreator = unitMeta.creatorId && Meteor.users.findOne({ _id: unitMeta.creatorId })
+
   let userIds, emailTemplateParams, emailTemplateFn, objectTemplate, settingSubType
   switch (type) {
     case 'case_assignee_updated':
@@ -113,7 +124,7 @@ export default (req, res) => {
       // TODO: notify the de-assigned user?
       userIds = [message.new_case_assignee_user_id]
       emailTemplateFn = caseAssigneeUpdateTemplate
-      emailTemplateParams = [unitMeta, caseTitle, caseId]
+      emailTemplateParams = [caseTitle, caseId]
       break
 
     case 'case_new_message':
@@ -124,7 +135,7 @@ export default (req, res) => {
       ]).filter(id => id !== message.created_by_user_id) // Preventing a notification being sent to the creator
       emailTemplateFn = caseNewMessageTemplate
       const creator = getUserByBZId(message.created_by_user_id)
-      emailTemplateParams = [unitMeta, caseTitle, caseId, creator, message.message_truncated]
+      emailTemplateParams = [caseTitle, caseId, creator, message.message_truncated]
       objectTemplate = {
         type: 'message',
         typeSpecific: {
@@ -154,7 +165,7 @@ export default (req, res) => {
       ]).filter(id => id !== message.user_id)
       emailTemplateFn = caseUpdatedTemplate
       const updater = getUserByBZId(message.user_id)
-      emailTemplateParams = [unitMeta, caseTitle, caseId, message, updater]
+      emailTemplateParams = [caseTitle, caseId, message, updater]
       objectTemplate = {
         type: 'update',
         typeSpecific: {
@@ -183,7 +194,7 @@ export default (req, res) => {
       // https://github.com/unee-t/sns2email/issues/3
       userIds = [message.invitee_user_id]
       emailTemplateFn = caseUserInvitedTemplate
-      emailTemplateParams = [unitMeta, caseTitle, caseId]
+      emailTemplateParams = [caseTitle, caseId]
       break
 
     default:
@@ -320,8 +331,8 @@ export default (req, res) => {
         `Skipping ${recipient.bugzillaCreds.login} as opted out from '${settingType}' notifications` + (settingSubType ? ` with '${settingSubType}' sub type` : '')
       )
     } else {
-      const emailContent = emailTemplateFn(...[recipient, notificationId, settingType].concat(emailTemplateParams))
-      sendEmail(recipient, emailContent, notificationId, caseId)
+      const emailContent = emailTemplateFn(...[recipient, notificationId, settingType, unitMeta, unitCreator].concat(emailTemplateParams))
+      sendEmail(recipient, emailContent, notificationId, caseId, unitCreator)
     }
   })
 

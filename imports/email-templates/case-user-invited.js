@@ -6,7 +6,7 @@ export default (invitee, notificationId, settingType, unitMeta, caseTitle, caseI
   const casePath = getCaseAccessPath(invitee, caseId)
 
   const optOutUrl = createEngagementLink({
-    url: URL.resolve(process.env.ROOT_URL, '/notification-settings'),
+    url: url.resolve(process.env.ROOT_URL, '/notification-settings'),
     id: notificationId,
     email: invitee.emails[0].address
   })

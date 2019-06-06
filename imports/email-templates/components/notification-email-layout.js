@@ -1,8 +1,43 @@
 import emailResponsiveStyleTag from './email-responsive-style-tag'
 import { resolveUserName } from './helpers'
 
-export default ({ typeTitle, user, mainContentHtml, mainContentText, accessUrl, optOutUrl, reasonExplanation }) => ({
-  html: `
+export default ({ typeTitle, user, mainContentHtml, mainContentText, accessUrl, optOutUrl, reasonExplanation, unitCreator }) => {
+  const customConfig = (unitCreator && unitCreator.customEmailBrandingConfig) || {
+    logoUrl: null,
+    brandName: null,
+    signatureHtml: null,
+    signatureText: null
+  }
+
+  const attachments = [{
+    path: 'https://s3-ap-southeast-1.amazonaws.com/prod-media-unee-t/2018-06-14/unee-t_logo_email.png',
+    cid: 'logo@unee-t.com'
+  }]
+
+  if (customConfig.logoUrl) {
+    attachments.push({
+      path: customConfig.logoUrl,
+      cid: 'customlogo@unee-t.com'
+    })
+  }
+
+  const uneetTagLine = 'THE Web App to Manage Incidents in your Properties'
+  const signatureHtml = customConfig.signatureHtml || `
+    <p>
+      Regards,<br />
+      Unee-T<br />
+      ${uneetTagLine}
+    </p>
+  `
+
+  const signatureText = customConfig.signatureText || `
+    Regards,
+    Unee-T
+    ${uneetTagLine}
+  `
+
+  return {
+    html: `
     <!doctype html>
 <html>
 <head>
@@ -30,19 +65,15 @@ export default ({ typeTitle, user, mainContentHtml, mainContentText, accessUrl, 
                 <tr>
                   <td>
                     <div class="align-right">
-                      <img class="logo" src="cid:logo@unee-t.com"/>
+                      <img class="logo" src="${customConfig.logoUrl ? 'cid:customlogo@unee-t.com' : 'cid:logo@unee-t.com'}"/>
                     </div>
                     <p>Hi ${resolveUserName(user)}</p>
-                    {mainContentHtml}
+                    ${mainContentHtml}
                     <p>
                       Click on this <a href="${accessUrl}">link</a> to see the current status for this case.<br />
                       Participate in the conversation, add comments or pictures directly so we can resolve this faster.
                     </p>
-                    <p>
-                      Regards,<br />
-                      Unee-T<br />
-                      THE Web App to Manage Incidents in your Properties
-                    </p>
+                    ${signatureHtml}
                     <hr />
                     <div class="bottom-explanation">
                       You are receiving this email because ${reasonExplanation}.
@@ -65,7 +96,8 @@ export default ({ typeTitle, user, mainContentHtml, mainContentText, accessUrl, 
           <table role="presentation" border="0" cellpadding="0" cellspacing="0">
             <tr>
               <td class="content-block powered-by">
-                Powered by <a href="https://unee-t.com"><img src="cid:logo@unee-t.com"/></a>.
+                <div>Powered by <a href="https://unee-t.com"><img src="cid:logo@unee-t.com"/></a>.</div>
+                ${customConfig.signatureHtml ? `<div>Unee-T: ${uneetTagLine}</div>` : ''}
               </td>
             </tr>
           </table>
@@ -81,7 +113,7 @@ export default ({ typeTitle, user, mainContentHtml, mainContentText, accessUrl, 
 </html>
 `,
 
-  text: `
+    text: `
 Hi ${resolveUserName(user)},
 
 ${mainContentText}
@@ -89,15 +121,14 @@ ${mainContentText}
 Follow this link: "${accessUrl}" to see the current status for this case.
 Participate in the conversation, add comments or pictures directly so we can resolve this faster.
 
-Regards,
-Unee-T
-THE Web App to Manage Incidents in your Properties
+${signatureText}
 --
 You are receiving this email because you have been assigned to a case.
 To Unsubscribe from these type of emails or manage your settings for all type of email updates, go to ${optOutUrl}
-  `,
-  attachments: [{
-    path: 'https://s3-ap-southeast-1.amazonaws.com/prod-media-unee-t/2018-06-14/unee-t_logo_email.png',
-    cid: 'logo@unee-t.com'
-  }]
-})
+${customConfig.signatureText ? `
+Unee-t: ${uneetTagLine}
+` : ''}
+    `,
+    attachments
+  }
+}
