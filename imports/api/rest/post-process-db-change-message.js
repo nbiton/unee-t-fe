@@ -11,6 +11,7 @@ import caseUserInvitedTemplate from '../../email-templates/case-user-invited'
 import { logger } from '../../util/logger'
 import UnitRolesData from '../unit-roles-data'
 import { CLOSED_STATUS_TYPES, severityIndex } from '../cases'
+import UnitMetaData from '../unit-meta-data'
 
 const updatedWhatWhiteList = [
   'Status',
@@ -99,6 +100,11 @@ export default (req, res) => {
     notification_id: notificationId
   } = message
 
+  const unitMeta = UnitMetaData.findOne({ bzId: unitId }) || {
+    displayName: `Unit ID ${unitId}`,
+    streetAddress: 'Unknown'
+  }
+
   let userIds, emailTemplateParams, emailTemplateFn, objectTemplate, settingSubType
   switch (type) {
     case 'case_assignee_updated':
@@ -107,7 +113,7 @@ export default (req, res) => {
       // TODO: notify the de-assigned user?
       userIds = [message.new_case_assignee_user_id]
       emailTemplateFn = caseAssigneeUpdateTemplate
-      emailTemplateParams = [caseTitle, caseId]
+      emailTemplateParams = [unitMeta, caseTitle, caseId]
       break
 
     case 'case_new_message':
@@ -118,7 +124,7 @@ export default (req, res) => {
       ]).filter(id => id !== message.created_by_user_id) // Preventing a notification being sent to the creator
       emailTemplateFn = caseNewMessageTemplate
       const creator = getUserByBZId(message.created_by_user_id)
-      emailTemplateParams = [caseTitle, caseId, creator, message.message_truncated]
+      emailTemplateParams = [unitMeta, caseTitle, caseId, creator, message.message_truncated]
       objectTemplate = {
         type: 'message',
         typeSpecific: {
@@ -148,7 +154,7 @@ export default (req, res) => {
       ]).filter(id => id !== message.user_id)
       emailTemplateFn = caseUpdatedTemplate
       const updater = getUserByBZId(message.user_id)
-      emailTemplateParams = [caseTitle, caseId, message.update_what, updater]
+      emailTemplateParams = [unitMeta, caseTitle, caseId, message, updater]
       objectTemplate = {
         type: 'update',
         typeSpecific: {
@@ -177,7 +183,7 @@ export default (req, res) => {
       // https://github.com/unee-t/sns2email/issues/3
       userIds = [message.invitee_user_id]
       emailTemplateFn = caseUserInvitedTemplate
-      emailTemplateParams = [caseTitle, caseId]
+      emailTemplateParams = [unitMeta, caseTitle, caseId]
       break
 
     default:
