@@ -1,6 +1,7 @@
 import { Meteor } from 'meteor/meteor'
 import { Accounts } from 'meteor/accounts-base'
 import { getHtml, getText } from '../email-templates/components/generic-email-layout.js'
+import { logger } from '../util/logger'
 
 Accounts.emailTemplates.from = process.env.FROM_EMAIL || 'support@unee-t.com'
 Accounts.config({
@@ -8,8 +9,12 @@ Accounts.config({
 })
 
 const getBrandConfig = user => {
-  const userCreator = user.creatorId ? Meteor.users.findOne({ _id: user.creatorId }) : {}
-  return userCreator.customEmailBrandingConfig || {}
+  let userCreator
+  if (user.profile.creatorId) {
+    userCreator = Meteor.users.findOne({ _id: user.profile.creatorId })
+    if (!userCreator) logger.warn(`No user found for user's creatorId ${user.profile.creatorId}`)
+  }
+  return userCreator ? userCreator.customEmailBrandingConfig : {}
 }
 const verifyReasonExplanation = 'you have signed up to Unee-T with this email address'
 const unsubText = 'If you think you should\'nt be receiving this email, kindly let us know at support@unee-t.com'
