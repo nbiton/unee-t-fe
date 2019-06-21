@@ -147,9 +147,6 @@ class CaseDetails extends Component {
   renderAssignedTo = (assignedUser, normalizedUnitUsers, pendingInvitations, isUnitOwner, unitRoleType) => {
     const { match, invitationState, onResetInvitation, onNewUserAssigned, onExistingUserAssigned } = this.props
     const { chosenAssigned } = this.state
-    // const defaultAssignees = normalizedUnitUsers.filter(u => u.isDefaultAssignee)
-    // console.log({defaultAssignees})
-
     const pendingUsers = pendingInvitations.map(inv => {
       const { bugzillaCreds: { login }, profile: { name }, emails: [{ address: email }] } = inv.inviteeUser()
       return {
@@ -167,9 +164,9 @@ class CaseDetails extends Component {
       if (user.login === resolvedAssignedUser.login) {
         classes.assignee = user
       } else if (user.isDefaultAssignee) {
-        // classes.defaultRoleAssignees.push(user)
+        classes.defaultRoleAssignees.push(user)
       } else {
-        // classes.otherRoleMembers.push(user)
+        classes.otherRoleMembers.push(user)
       }
 
       return classes
