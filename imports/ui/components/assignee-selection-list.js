@@ -12,7 +12,6 @@ type Props = {
 }
 
 export default class AssigneeSelectionList extends React.Component<Props> {
-
   renderUserItem = (user: UserDetails, key?: number | string) => {
     const { currentAssignee, onUserClicked, currentSelectedUser } = this.props
     return (
