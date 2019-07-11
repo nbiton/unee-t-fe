@@ -43,6 +43,12 @@ export const caseServerFieldMapping = {
   additionalComments: 'whiteboard'
 }
 
+export const caseUpdateServerFieldMapping = {
+  ...caseServerFieldMapping,
+  severity: 'severity',
+  category: 'platform'
+}
+
 export const severityIndex = [
   'DEAL BREAKER!',
   'critical',
@@ -68,6 +74,7 @@ export const caseClientFieldMapping = Object.assign(
     [caseServerFieldMapping[key]]: key
   }), {}),
   {
+    severity: 'severity',
     platform: 'category'
   }
 )
@@ -369,13 +376,18 @@ export const fieldEditMethodMaker = ({ editableFields, methodName, publicationOb
       const changedFields = Object.keys(changeSet)
       try {
         const normalizedSet = changedFields.reduce((all, key) => {
-          all[caseServerFieldMapping[key]] = changeSet[key]
+          all[caseUpdateServerFieldMapping[key]] = changeSet[key]
           return all
         }, {})
+
         callAPI('put', `${caseBzApiRoute}/${caseId}`, Object.assign({ api_key: apiKey }, normalizedSet), false, true)
-        const { data: { bugs: [caseItem] } } = callAPI(
+        const { data: { bugs: [bugItem] } } = callAPI(
           'get', `${caseBzApiRoute}/${caseId}`, { api_key: apiKey }, false, true
         )
+        console.log({bugItem})
+
+        const caseItem = transformCaseForClient(bugItem)
+
         publicationObj.handleChanged(caseItem, changedFields)
       } catch (e) {
         logger.error({
@@ -628,7 +640,11 @@ Meteor.methods({
       'solution',
       'nextSteps',
       'status',
-      'resolution'
+      'resolution',
+      'category',
+      'subCategory',
+      'priority',
+      'severity'
     ],
     clientCollection: Cases,
     publicationObj
