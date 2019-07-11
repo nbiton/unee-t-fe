@@ -384,7 +384,6 @@ export const fieldEditMethodMaker = ({ editableFields, methodName, publicationOb
         const { data: { bugs: [bugItem] } } = callAPI(
           'get', `${caseBzApiRoute}/${caseId}`, { api_key: apiKey }, false, true
         )
-        console.log({bugItem})
 
         const caseItem = transformCaseForClient(bugItem)
 
