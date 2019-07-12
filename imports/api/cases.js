@@ -379,11 +379,13 @@ export const fieldEditMethodMaker = ({ editableFields, methodName, publicationOb
           all[caseUpdateServerFieldMapping[key]] = changeSet[key]
           return all
         }, {})
+        console.log({ normalizedSet })
 
         callAPI('put', `${caseBzApiRoute}/${caseId}`, Object.assign({ api_key: apiKey }, normalizedSet), false, true)
         const { data: { bugs: [bugItem] } } = callAPI(
           'get', `${caseBzApiRoute}/${caseId}`, { api_key: apiKey }, false, true
         )
+        console.log({ bugItem })
 
         const caseItem = transformCaseForClient(bugItem)
 
