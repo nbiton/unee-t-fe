@@ -379,15 +379,13 @@ export const fieldEditMethodMaker = ({ editableFields, methodName, publicationOb
           all[caseUpdateServerFieldMapping[key]] = changeSet[key]
           return all
         }, {})
-        console.log({ normalizedSet })
-
         const { data: putData } = callAPI('put', `${caseBzApiRoute}/${caseId}`, Object.assign({ api_key: apiKey }, normalizedSet), false, true)
-        console.log({ putData })
-
+        if (!putData.bugs && putData.message) {
+          throw new Meteor.Error(putData.message)
+        }
         const { data: { bugs: [bugItem] } } = callAPI(
           'get', `${caseBzApiRoute}/${caseId}`, { api_key: apiKey }, false, true
         )
-        console.log({ bugItem })
 
         const caseItem = transformCaseForClient(bugItem)
 
@@ -399,7 +397,7 @@ export const fieldEditMethodMaker = ({ editableFields, methodName, publicationOb
           args: [caseId, changeSet],
           error: e
         })
-        throw new Meteor.Error('API error')
+        throw new Meteor.Error('API error : ' + e.message)
       }
     }
   }
