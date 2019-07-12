@@ -381,7 +381,9 @@ export const fieldEditMethodMaker = ({ editableFields, methodName, publicationOb
         }, {})
         console.log({ normalizedSet })
 
-        callAPI('put', `${caseBzApiRoute}/${caseId}`, Object.assign({ api_key: apiKey }, normalizedSet), false, true)
+        const { data: putData } = callAPI('put', `${caseBzApiRoute}/${caseId}`, Object.assign({ api_key: apiKey }, normalizedSet), false, true)
+        console.log({ putData })
+
         const { data: { bugs: [bugItem] } } = callAPI(
           'get', `${caseBzApiRoute}/${caseId}`, { api_key: apiKey }, false, true
         )
