@@ -14,16 +14,9 @@ import InviteDialog from '../dialogs/invite-dialog'
 import { TYPE_CC, TYPE_ASSIGNED } from '../../api/pending-invitations'
 import EditableItem from '../components/editable-item'
 import ErrorDialog from '../dialogs/error-dialog'
-import { infoItemLabel, infoItemMembers, InfoItemContainer, InfoItemRow } from '../util/static-info-rendering'
+import { infoItemLabel, InfoItemContainer, InfoItemRow } from '../util/static-info-rendering'
 import AddUserControlLine from '../components/add-user-control-line'
 import AssigneeSelectionList from '../components/assignee-selection-list'
-import {
-  selectInputIconStyle,
-  textInputFloatingLabelStyle,
-  textInputStyle, textInputUnderlineFocusStyle
-} from '../components/form-controls.mui-styles'
-import MenuItem from 'material-ui/MenuItem'
-import SelectField from 'material-ui/SelectField'
 
 const mediaItemsPadding = 4 // Corresponds with the classNames set to the media items
 const mediaItemRowCount = 3
