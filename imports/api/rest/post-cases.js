@@ -49,7 +49,7 @@ export default userApiKey((req: Request, res: Response) => {
     const assigneeUser = Meteor.users.findOne({ _id: assigneeId })
     if (!assigneeUser) {
       const message = `No user found for assigneeId of ${assigneeId}`
-      logger.warn(errorLog  + message)
+      logger.warn(errorLog + message)
       res.send(400, message)
       return
     }
