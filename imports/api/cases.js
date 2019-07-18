@@ -29,7 +29,7 @@ export const caseServerFieldMapping = {
   title: 'summary',
   details: 'description',
   nextSteps: 'cf_ipi_clust_1_next_step',
-  nextStepsBy: 'cf_ipi_clust_1_next_step_by',
+  nextStepsBy: 'cf_ipi_clust_1_next_step_date',
   solution: 'cf_ipi_clust_1_solution',
   solutionDeadline: 'deadline',
   involvedList: 'cc',
@@ -79,7 +79,27 @@ export const caseClientFieldMapping = Object.assign(
   }
 )
 
-export const createCase = (creatorUser, unitItem, { assignedUnitRole, title, details, category, subCategory, assignee, parentReportId }, newUserEmail, newUserIsOccupant) => { // Server side only
+export const createCase = (
+  creatorUser,
+  unitItem,
+  {
+    assignedUnitRole,
+    title,
+    details,
+    category,
+    subCategory,
+    assignee,
+    parentReportId,
+    priority,
+    severity,
+    solution,
+    solutionDeadline,
+    nextSteps,
+    nextStepsBy
+  },
+  newUserEmail,
+  newUserIsOccupant
+) => { // Server side only
   const { callAPI } = bugzillaApi
 
   // Checking the role is valid
@@ -106,6 +126,12 @@ export const createCase = (creatorUser, unitItem, { assignedUnitRole, title, det
     category,
     subCategory,
     assignee,
+    priority,
+    severity,
+    solution,
+    solutionDeadline,
+    nextSteps,
+    nextStepsBy,
     selectedUnit: unitItem.name
   }
 
