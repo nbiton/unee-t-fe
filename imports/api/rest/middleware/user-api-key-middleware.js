@@ -20,8 +20,6 @@ export const headerExtractor:Extractor = {
     const authHeader = req.headers.Authorization || req.headers.authorization
     if (authHeader) {
       const match = authHeader.match(/Bearer (.+)/)
-      console.log({match1: match[1]})
-
       if (match) return match[1]
     }
   },
