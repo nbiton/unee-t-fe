@@ -28,7 +28,7 @@ export const headerExtractor:Extractor = {
 export const makeComposedExtractor = (...extractors: Array<Extractor>):Extractor => ({
   func: req => {
     let apiKey
-    return extractors.some(ext =>{
+    return extractors.some(ext => {
       apiKey = ext.func(req)
       return apiKey
     }) ? apiKey : null
