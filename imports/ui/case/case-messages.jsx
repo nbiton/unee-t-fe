@@ -15,7 +15,7 @@ import { attachmentTextMatcher } from '../../util/matchers'
 import UserAvatar from '../components/user-avatar'
 import FileInput from '../components/file-input'
 import UploadPreloader from '../components/upload-preloader'
-import { imageInputEventHandler } from '../util/dom-api'
+import { fileInputReaderEventHandler } from '../util/dom-api'
 import styles from './case.mss'
 import themes from '../components/user-themes.mss'
 import colors from '../../mui-theme/colors'
@@ -51,6 +51,11 @@ class CaseMessages extends Component {
     super(...arguments)
     this.state = {
       message: ''
+    }
+
+    this.attachmentRenderers = {
+      image: this.renderMessageImageContent.bind(this),
+      audio: this.renderMessageAudioContent.bind(this)
     }
   }
 
@@ -163,7 +168,7 @@ class CaseMessages extends Component {
         { isCurrentUserCreator &&
           <ChatBotUI
             caseItem={this.props.caseItem}
-            handleFileSelection={imageInputEventHandler(this.props.onCreateAttachment)}
+            handleFileSelection={fileInputReaderEventHandler(this.props.onCreateAttachment)}
             onCreateAttachment={this.props.onCreateAttachment}
           />
         }
@@ -183,9 +188,15 @@ class CaseMessages extends Component {
 
   renderSingleMessage ({ creator, creatorUser, text, creation_time: creationTime, process, id }, key) {
     const isSelf = this.props.userBzLogin === creator
-    const contentRenderer = attachmentTextMatcher(text)
-      ? this.renderMessageImageContent.bind(this)
-      : this.renderMessageTextContent.bind(this)
+    const attachmentType = attachmentTextMatcher(text)
+    let contentRenderer
+    if (attachmentType) {
+      contentRenderer = this.attachmentRenderers[attachmentType]
+        ? this.attachmentRenderers[attachmentType]
+        : this.renderMessageTextContent.bind(this)
+    } else {
+      contentRenderer = this.renderMessageTextContent.bind(this)
+    }
     let themeClass
     if (!isSelf) {
       let creatorIndex = this.creators.indexOf(creator)
@@ -208,8 +219,9 @@ class CaseMessages extends Component {
   renderMessageTextContent ({ isSelf, creatorUser, creator, text, creationTime }) {
     // If createUser is unset, i.e. it only has a Bugzilla user and not Meteor user,
     // truncate the email address to show only the local part
-    const creatorText = creatorUser ? creatorUser.profile.name : creator.split('@')[0]
-
+    const creatorText = creatorUser
+      ? (creatorUser.profile.name || creatorUser.emails[0].address.split('@')[0])
+      : creator.split('@')[0]
     return (
       <div className={'mw-60 cf br3 pt2 pl3 pr2 mh2 dib tl ' + (isSelf ? 'bg-rad-green' : 'bg-white')}>
         { !isSelf ? (
@@ -244,13 +256,34 @@ class CaseMessages extends Component {
     )
   }
 
+  renderMessageAudioContent ({ isSelf, text, creationTime, id, process }) {
+    const attachmentUrl = text.split('\n')[1]
+    return (
+      <div className={
+        'w-60 br3 mh2 dib tc overflow-hidden h4 relative inline-flex items-center ' +
+        (isSelf ? 'ml-auto bg-rad-green' : 'bg-white')
+      }>
+        <audio controls src={attachmentUrl} />
+        <div className={styles.messageTime + ' fr f7 absolute bottom-0 right-0 lh-dbl pr2'}>
+          {moment(creationTime).format('HH:mm')}
+        </div>
+        {process && (
+          <UploadPreloader handleRetryUpload={this.props.onRetryAttachment} process={process} />
+        )}
+      </div>
+    )
+  }
+
   renderInputControls () {
     const { message } = this.state
 
     return (
       <div className={[styles.inputRow, 'flex items-end overflow-visible'].join(' ')}>
         <IconButton style={attachmentButtonStyle}>
-          <FileInput onFileSelected={imageInputEventHandler(this.props.onCreateAttachment)}>
+          <FileInput
+            acceptTypes={{ image: true, audio: true }}
+            onFileSelected={fileInputReaderEventHandler(this.props.onCreateAttachment)}
+          >
             <ContentAdd color={colors.main} />
           </FileInput>
         </IconButton>
