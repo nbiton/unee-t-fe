@@ -49,6 +49,8 @@ const additionalSubHeader = (label, info, onClick, lastIndex, colorName) => (
   </Subheader>
 )
 
+const recordTimeLimitSecs = 60
+
 const formatTimeStamp = totalSecs => {
   const minutes = Math.floor(totalSecs / 60)
   const minutesStr = minutes < 10 ? '0' + minutes : minutes.toString()
@@ -70,7 +72,8 @@ class CaseMessages extends Component {
       recordedBlobUrl: null,
       showVoiceRecordError: false,
       previewAudioDuration: null,
-      previewAudioCurrentTime: 0
+      previewAudioCurrentTime: 0,
+      showTimeLimitWarning: false
     }
 
     this.recordedBlob = null
@@ -132,24 +135,30 @@ class CaseMessages extends Component {
           const { elapsedRecordingSeconds } = this.state
           const currElapsed = Math.floor((Date.now() - startTime) / 1000)
           if (elapsedRecordingSeconds !== currElapsed) {
-            this.setState({
-              elapsedRecordingSeconds: currElapsed
-            })
+            if (currElapsed >= recordTimeLimitSecs) {
+              this.stopRecording(true)
+            } else {
+              this.setState({
+                elapsedRecordingSeconds: currElapsed
+              })
+            }
           }
         }, 250)
       })
   }
 
-  stopRecording = () => {
+  stopRecording = (timeLimitReached = false) => {
     this.recorder.stop()
       .then(({ blob }) => {
         this.recordedBlob = blob
         clearInterval(this.recordingUIInterval)
         this.setState({
+          elapsedRecordingSeconds: 0,
           previewAudioDuration: null,
           previewAudioCurrentTime: 0,
           isRecording: false,
-          recordedBlobUrl: URL.createObjectURL(this.recordedBlob)
+          recordedBlobUrl: URL.createObjectURL(this.recordedBlob),
+          showTimeLimitWarning: timeLimitReached
         })
         this.audioStream.getTracks().forEach(track => track.stop())
       })
@@ -455,7 +464,7 @@ class CaseMessages extends Component {
   renderInputControls () {
     const {
       message, showVoiceRecorder, isRecording, isVoicePreviewPlaying, recordedBlobUrl, showVoiceRecordError,
-      elapsedRecordingSeconds, previewAudioDuration, previewAudioCurrentTime
+      elapsedRecordingSeconds, previewAudioDuration, previewAudioCurrentTime, showTimeLimitWarning
     } = this.state
 
     return (
@@ -514,7 +523,7 @@ class CaseMessages extends Component {
                   zDepth={0}
                   iconStyle={{ ...recButtonIconStyle, color: 'var(--warn-plain-red)' }}
                   backgroundColor='var(--gray-93)'
-                  onClick={this.stopRecording}
+                  onClick={() => this.stopRecording()}
                 >
                   <FontIcon className='material-icons'>stop</FontIcon>
                 </FloatingActionButton>
@@ -524,6 +533,11 @@ class CaseMessages extends Component {
                 </FloatingActionButton>
               )}
             </div>
+            <ErrorDialog
+              show={showTimeLimitWarning}
+              text='Voice recording is limited to 1 minute maximum, you can send the last minute of the recording'
+              onDismissed={() => this.setState({ showTimeLimitWarning: false })}
+            />
           </div>
         ) : (
           <div className={[styles.inputRow, 'flex items-end overflow-visible'].join(' ')}>
