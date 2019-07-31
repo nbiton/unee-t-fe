@@ -138,11 +138,11 @@ class CaseMessages extends Component {
           }
         }, 250)
       })
-}
+  }
 
   stopRecording = () => {
     this.recorder.stop()
-      .then(({blob, buffer}) => {
+      .then(({ blob }) => {
         this.recordedBlob = blob
         clearInterval(this.recordingUIInterval)
         this.setState({
@@ -166,7 +166,7 @@ class CaseMessages extends Component {
         message: ''
       })
     } else {
-      navigator.mediaDevices.getUserMedia({audio: true})
+      navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
           this.recorder.init(stream)
           this.audioStream = stream
@@ -224,7 +224,7 @@ class CaseMessages extends Component {
   }
 
   handleRecordingSent = () => {
-    const {recordedBlobUrl} = this.state
+    const { recordedBlobUrl } = this.state
     this.props.onCreateAttachment(recordedBlobUrl, this.recordedBlob)
     this.clearRecordingArtifacts()
   }
@@ -465,7 +465,7 @@ class CaseMessages extends Component {
             {isRecording ? (
               <div className='relative'>
                 <div className='absolute left-0 right-0 top-0 bottom-0 z-0 flex items-center justify-center'>
-                  <div className='bg-black-20 br-100' ref={el => {this.voiceFeedbackEl = el}} />
+                  <div className='bg-black-20 br-100' ref={el => { this.voiceFeedbackEl = el }} />
                 </div>
                 <FontIcon
                   className={'material-icons ' + (elapsedRecordingSeconds % 2 === 0 ? 'o-100' : 'o-0')}

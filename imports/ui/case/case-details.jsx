@@ -72,7 +72,7 @@ class CaseDetails extends Component {
     const changes = {}
     const { computedImageMediaItemWidth, computedAudioMediaItemWidth } = this.state
     if (this.imageMediaContainer) {
-      const currImageItemWidth =  Math.round((this.imageMediaContainer.clientWidth - (2 * mediaItemsPadding)) / mediaItemRowCount)
+      const currImageItemWidth = Math.round((this.imageMediaContainer.clientWidth - (2 * mediaItemsPadding)) / mediaItemRowCount)
       if (computedImageMediaItemWidth !== currImageItemWidth) {
         Object.assign(changes, {
           computedImageMediaItemWidth: currImageItemWidth
@@ -554,7 +554,7 @@ class CaseDetails extends Component {
             {attachments.images.length > 0 && (
               <InfoItemContainer>
                 {infoItemLabel(`Images (${attachments.images.length})`)}
-                <div className='mv2 grid col3-1fr gap1 flow-row' ref={el => {this.imageMediaContainer = el}}>
+                <div className='mv2 grid col3-1fr gap1 flow-row' ref={el => { this.imageMediaContainer = el }}>
                   {attachments.images.map(([url, id], ind) => (
                     <img
                       className='overflow-hidden'
@@ -569,7 +569,7 @@ class CaseDetails extends Component {
             {attachments.audio.length > 0 && (
               <InfoItemContainer>
                 {infoItemLabel(`Voice Memos (${attachments.audio.length})`)}
-                <div className='mv2 grid col3-1fr gap1 flow-row' ref={el => {this.audioMediaContainer = el}}>
+                <div className='mv2 grid col3-1fr gap1 flow-row' ref={el => { this.audioMediaContainer = el }}>
                   {attachments.audio.map(([url, id, creatorText], ind) => (
                     <div
                       key={ind}
