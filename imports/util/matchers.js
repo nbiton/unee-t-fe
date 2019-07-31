@@ -3,10 +3,14 @@ import { Meteor } from 'meteor/meteor'
 export const attachmentTextMatcher = text => {
   const cloudinaryDownloadUrl = Meteor.settings.public.CLOUDINARY_URL.replace('/api.', '/res.').replace(/\/v1_1(\/[^/]+\/).*/, '$1')
   const attachmentRegexStr = '^\\[!attachment\\(([a-zA-Z]+)\\)\\]\\n'
-  const previewPrefixRegex = new RegExp(attachmentRegexStr + 'data:(a-zA-Z)\\/')
+  const previewPrefixRegex = new RegExp(attachmentRegexStr + 'data:')
+  const blobPrefixRegex = new RegExp(attachmentRegexStr + 'blob:')
   const cloudinaryPrefixRegex = new RegExp(attachmentRegexStr + cloudinaryDownloadUrl)
   const legacyPrefixRegex = new RegExp('^\\[!attachment\\]\\n' + cloudinaryDownloadUrl)
-  const match = text.match(previewPrefixRegex) || text.match(cloudinaryPrefixRegex) || text.match(legacyPrefixRegex)
+  const match = text.match(previewPrefixRegex) ||
+    text.match(cloudinaryPrefixRegex) ||
+    text.match(legacyPrefixRegex) ||
+    text.match(blobPrefixRegex)
   return match && (match.length > 1 ? match[1] : 'image')
 }
 

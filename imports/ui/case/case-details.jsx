@@ -23,6 +23,8 @@ const mediaItemRowCount = 3
 
 class CaseDetails extends Component {
   audioRefs = {}
+  imageMediaContainer = null
+  audioMediaContainer = null
   constructor (props) {
     super(props)
     this.state = {
@@ -33,7 +35,9 @@ class CaseDetails extends Component {
       usersToBeInvited: [],
       normalizedUnitUsers: null,
       audioDurations: {},
-      playingAudioId: null
+      playingAudioId: null,
+      computedAudioMediaItemWidth: 100,
+      computedImageMediaItemWidth: 100
     }
   }
 
@@ -44,9 +48,11 @@ class CaseDetails extends Component {
   }
 
   componentDidMount () {
-    this.setState({
-      computedMediaItemWidth: Math.round((this.refs.media.clientWidth - (2 * mediaItemsPadding)) / mediaItemRowCount)
-    })
+    this.recalcMediaItemsWidth()
+  }
+
+  componentDidUpdate () {
+    this.recalcMediaItemsWidth()
   }
 
   componentWillReceiveProps (nextProps) {
@@ -59,6 +65,31 @@ class CaseDetails extends Component {
       this.setState({
         normalizedUnitUsers: this.normalizeUnitUsers()
       })
+    }
+  }
+
+  recalcMediaItemsWidth = () => {
+    const changes = {}
+    const { computedImageMediaItemWidth, computedAudioMediaItemWidth } = this.state
+    if (this.imageMediaContainer) {
+      const currImageItemWidth =  Math.round((this.imageMediaContainer.clientWidth - (2 * mediaItemsPadding)) / mediaItemRowCount)
+      if (computedImageMediaItemWidth !== currImageItemWidth) {
+        Object.assign(changes, {
+          computedImageMediaItemWidth: currImageItemWidth
+        })
+      }
+    }
+    if (this.audioMediaContainer) {
+      const currAudioItemWidth = Math.round((this.audioMediaContainer.clientWidth - (2 * mediaItemsPadding)) / mediaItemRowCount)
+      if (computedAudioMediaItemWidth !== currAudioItemWidth) {
+        Object.assign(changes, {
+          computedAudioMediaItemWidth: Math.round((this.audioMediaContainer.clientWidth - (2 * mediaItemsPadding)) / mediaItemRowCount)
+        })
+      }
+    }
+
+    if (Object.keys(changes).length > 0) {
+      this.setState(changes)
     }
   }
 
@@ -491,7 +522,9 @@ class CaseDetails extends Component {
     )
   }
   renderMediaSection (comments) {
-    const { audioDurations, playingAudioId } = this.state
+    const {
+      audioDurations, playingAudioId, computedAudioMediaItemWidth: audioSize, computedImageMediaItemWidth: imageSize
+    } = this.state
     const attachments = comments
       .reduce((all, c) => {
         const type = attachmentTextMatcher(c.text)
@@ -510,59 +543,66 @@ class CaseDetails extends Component {
 
         return all
       }, { images: [], audio: [] })
-    const size = this.state.computedMediaItemWidth
+    // const size = this.state.computedMediaItemWidth
     return (
       <div className='bt bw3 b--light-gray'>
-        <div className='pl3 mt2 fw5 silver'>
-          ATTACHMENTS
-        </div>
-        {attachments.images.length > 0 && (
-          <InfoItemContainer>
-            {infoItemLabel(`Images (${attachments.images.length})`)}
-            <div className='mv2 grid col3-1fr gap1 flow-row' ref='media'>
-              {attachments.images.map(([url, id], ind) => (
-                <img className='overflow-hidden' src={size && fitDimensions(url, size, size)} width={size} height={size} alt={url} key={ind}
-                  onClick={() => this.props.onSelectAttachment(id)}
-                />
-              ))}
+        {Object.keys(attachments).some(attType => attachments[attType].length > 0) && (
+          <div>
+            <div className='pl3 mt2 fw5 silver'>
+              ATTACHMENTS
             </div>
-          </InfoItemContainer>
-        )}
-        {attachments.audio.length > 0 && (
-          <InfoItemContainer>
-            {infoItemLabel(`Voice Memos (${attachments.audio.length})`)}
-            <div className='mv2 grid col3-1fr gap1 flow-row' ref='media'>
-              {attachments.audio.map(([url, id, creatorText], ind) => (
-                <div
-                  key={ind}
-                  className='bg-very-light-gray ba b--gray-93 flex flex-column items-center justify-center relative'
-                  style={{ width: size + 'px', height: size + 'px' }}
-                  onClick={() => this.handleAudioAttachmentClicked(id)}
-                >
-                  {playingAudioId === id && (
-                    <div className='absolute bg-black-70 left-0 top-0 bottom-0 right-0 flex items-center justify-center'>
-                      <FontIcon className='material-icons' style={{ fontSize: '28px' }} color='#fff'>pause</FontIcon>
-                    </div>
-                  )}
-                  <FontIcon className='material-icons' color='#555'>keyboard_voice</FontIcon>
-                  <div className='mt1 f7 mid-gray fw5'>
-                    {creatorText}
-                  </div>
-                  <div className='mt1 flex items-center pr1'>
-                    <FontIcon
-                      className={'material-icons' + (playingAudioId === id ? ' o-0' : '')}
-                      style={{ fontSize: 16 }}
-                      color='#555'
-                    >
-                      play_arrow
-                    </FontIcon>
-                    <div className='ml1 f7 mid-gray'>{this.formatAudioDuration(audioDurations[id.toString()])}</div>
-                  </div>
-                  <audio src={url} ref={el => this.handleAudioRef(el, id)} />
+            {attachments.images.length > 0 && (
+              <InfoItemContainer>
+                {infoItemLabel(`Images (${attachments.images.length})`)}
+                <div className='mv2 grid col3-1fr gap1 flow-row' ref={el => {this.imageMediaContainer = el}}>
+                  {attachments.images.map(([url, id], ind) => (
+                    <img
+                      className='overflow-hidden'
+                      src={imageSize && fitDimensions(url, imageSize, imageSize)}
+                      width={imageSize} height={imageSize} alt={url} key={ind}
+                      onClick={() => this.props.onSelectAttachment(id)}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
-          </InfoItemContainer>
+              </InfoItemContainer>
+            )}
+            {attachments.audio.length > 0 && (
+              <InfoItemContainer>
+                {infoItemLabel(`Voice Memos (${attachments.audio.length})`)}
+                <div className='mv2 grid col3-1fr gap1 flow-row' ref={el => {this.audioMediaContainer = el}}>
+                  {attachments.audio.map(([url, id, creatorText], ind) => (
+                    <div
+                      key={ind}
+                      className='bg-very-light-gray ba b--gray-93 flex flex-column items-center justify-center relative'
+                      style={{ width: audioSize + 'px', height: audioSize + 'px' }}
+                      onClick={() => this.handleAudioAttachmentClicked(id)}
+                    >
+                      {playingAudioId === id && (
+                        <div className='absolute bg-black-70 left-0 top-0 bottom-0 right-0 flex items-center justify-center'>
+                          <FontIcon className='material-icons' style={{ fontSize: '28px' }} color='#fff'>pause</FontIcon>
+                        </div>
+                      )}
+                      <FontIcon className='material-icons' color='#555'>keyboard_voice</FontIcon>
+                      <div className='mt1 f7 mid-gray fw5'>
+                        {creatorText}
+                      </div>
+                      <div className='mt1 flex items-center pr1'>
+                        <FontIcon
+                          className={'material-icons' + (playingAudioId === id ? ' o-0' : '')}
+                          style={{ fontSize: 16 }}
+                          color='#555'
+                        >
+                          play_arrow
+                        </FontIcon>
+                        <div className='ml1 f7 mid-gray'>{this.formatAudioDuration(audioDurations[id.toString()])}</div>
+                      </div>
+                      <audio src={url} ref={el => this.handleAudioRef(el, id)} />
+                    </div>
+                  ))}
+                </div>
+              </InfoItemContainer>
+            )}
+          </div>
         )}
       </div>
     )

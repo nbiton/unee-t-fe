@@ -35,8 +35,7 @@ export const createAttachment = fileUploadProcessor(CREATE_ATTACHMENT, {
   complete: (action, fileUrl) => {
     const custAction: CustAction = (action: any)
 
-    const regexMatch = custAction.preview.match(/^data:([a-zA-Z]+)\//)
-    const type = regexMatch && regexMatch.length === 2 ? regexMatch[1] : 'image'
+    const type = action.file.type.split('/')[0]
 
     return [
       {
