@@ -90,9 +90,6 @@ class CaseMessages extends Component {
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)()
 
     this.recorder = new Recorder(this.audioContext, {
-      // An array of 255 Numbers
-      // You can use this to visualize the audio stream
-      // If you use react, check out react-wave-stream
       onAnalysed: data => {
         if (this.voiceFeedbackEl) {
           const val = Math.round(this.voiceFeedbackEl.parentElement.offsetWidth * data.lineTo / 255 * 1.25) + 'px'
