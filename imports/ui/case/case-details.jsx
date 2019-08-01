@@ -113,16 +113,18 @@ class CaseDetails extends Component {
 
   handleAudioRef = (el, id) => {
     if (!el) return
-    const { audioDurations } = this.state
-    el.addEventListener('loadedmetadata', evt => {
-      this.setState({
-        audioDurations: {
-          ...audioDurations,
-          [id.toString()]: el.duration
-        }
-      })
-    })
     this.audioRefs[id] = el
+  }
+
+  handleAudioMetaDataLoaded = (evt, id) => {
+    const { audioDurations } = this.state
+
+    this.setState({
+      audioDurations: {
+        ...audioDurations,
+        [id.toString()]: evt.target.duration
+      }
+    })
   }
 
   handleAudioAttachmentClicked = id => {
@@ -596,7 +598,11 @@ class CaseDetails extends Component {
                         </FontIcon>
                         <div className='ml1 f7 mid-gray'>{this.formatAudioDuration(audioDurations[id.toString()])}</div>
                       </div>
-                      <audio src={url} ref={el => this.handleAudioRef(el, id)} />
+                      <audio
+                        src={url}
+                        onLoadedMetadata={evt => this.handleAudioMetaDataLoaded(evt, id)}
+                        ref={el => this.handleAudioRef(el, id)}
+                      />
                     </div>
                   ))}
                 </div>

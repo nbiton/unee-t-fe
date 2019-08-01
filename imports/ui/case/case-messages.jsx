@@ -255,11 +255,11 @@ class CaseMessages extends Component {
 
   handlePreviewAudioRef = el => {
     this.previewAudio = el
-    if (!el) return
-    el.addEventListener('loadedmetadata', evt => {
-      this.setState({
-        previewAudioDuration: el.duration
-      })
+  }
+
+  handlePreviewMetadataLoaded = evt => {
+    this.setState({
+      previewAudioDuration: evt.target.duration
     })
   }
 
@@ -491,7 +491,7 @@ class CaseMessages extends Component {
                 >
                   <FontIcon className='material-icons'>{isVoicePreviewPlaying ? 'pause' : 'play_arrow'}</FontIcon>
                 </FloatingActionButton>
-                <audio src={recordedBlobUrl} ref={this.handlePreviewAudioRef} />
+                <audio src={recordedBlobUrl} onLoadedMetadata={this.handlePreviewMetadataLoaded} ref={this.handlePreviewAudioRef} />
               </div>
             )}
             <div className='ml2 mid-gray flex-grow'>
