@@ -2,7 +2,7 @@
 import * as React from 'react'
 import RaisedButton from 'material-ui/RaisedButton'
 import IconButton from 'material-ui/IconButton'
-import Dialog from 'material-ui/Dialog'
+import HeightHackDialog from './height-hack-dialog'
 import {
   closeDialogButtonStyle,
   modalBodyStyle,
@@ -100,7 +100,8 @@ export default class CaseTargetAttrDialog extends React.Component<Props, State> 
     const { attrValue, attrDate, attrTime, isEditing } = this.state
     const now = new Date()
     return (
-      <Dialog
+      <HeightHackDialog
+        padding={100}
         open={show}
         title={(isEditing ? 'Edit ' : 'Create ') + attrName}
         bodyStyle={modalBodyStyle}
@@ -168,7 +169,7 @@ export default class CaseTargetAttrDialog extends React.Component<Props, State> 
             </RaisedButton>
           </div>
         </div>
-      </Dialog>
+      </HeightHackDialog>
     )
   }
 }
