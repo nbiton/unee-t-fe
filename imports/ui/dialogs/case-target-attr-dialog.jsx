@@ -30,7 +30,8 @@ type State = {
   attrValue: string,
   attrDate: ?Date,
   attrTime: any,
-  isEditing: boolean
+  isEditing: boolean,
+  hideDateRow: boolean
 }
 
 const displayTextFieldStyle = {
@@ -43,7 +44,8 @@ export default class CaseTargetAttrDialog extends React.Component<Props, State> 
     attrValue: '',
     attrDate: null,
     attrTime: null,
-    isEditing: false
+    isEditing: false,
+    hideDateRow: false
   }
 
   componentDidMount () {
@@ -95,19 +97,29 @@ export default class CaseTargetAttrDialog extends React.Component<Props, State> 
     this.props.onSubmit(attrValue, finalDateTime.toDate())
   }
 
+  handleHeightChanged = (height: number) => {
+    const { hideDateRow } = this.state
+    if (hideDateRow !== (height < 300)) {
+      this.setState({
+        hideDateRow: height < 300
+      })
+    }
+  }
+
   render () {
     const { show, onCancel, attrName, showTime } = this.props
-    const { attrValue, attrDate, attrTime, isEditing } = this.state
+    const { attrValue, attrDate, attrTime, isEditing, hideDateRow } = this.state
     const now = new Date()
     return (
       <HeightHackDialog
-        padding={100}
+        padding={50}
         open={show}
         title={(isEditing ? 'Edit ' : 'Create ') + attrName}
         bodyStyle={modalBodyStyle}
         contentStyle={modalCustomContentStyle}
         titleStyle={customTitleStyle}
         onRequestClose={onCancel}
+        onHeightChange={this.handleHeightChanged}
       >
         <div className='absolute top-1 right-1'>
           <IconButton onClick={onCancel}>
@@ -120,43 +132,46 @@ export default class CaseTargetAttrDialog extends React.Component<Props, State> 
             label={attrName}
             onEdit={val => { this.setState({ attrValue: val }) }}
             currentValue={attrValue}
+            rowsMax={3}
           />
           <div className='mt3 flex-grow'>
-            {infoItemLabel('Deadline')}
-            <div className='flex'>
-              <div className='flex-grow flex items-center'>
-                <div className='mr2'>
-                  <FontIcon className='material-icons' color='#999'>date_range</FontIcon>
-                </div>
-                <DatePicker
-                  minDate={now}
-                  onChange={(evt, val) => {
-                    this.setState({ attrDate: val })
-                  }}
-                  formatDate={date => moment(date).format('D MMM YYYY')}
-                  value={attrDate}
-                  hintText='Date'
-                  textFieldStyle={displayTextFieldStyle}
-                />
-              </div>
-              <div className='flex-grow flex items-center ml2'>
-                {showTime && (
+            {!hideDateRow && infoItemLabel('Deadline')}
+            {!hideDateRow && (
+              <div className='flex'>
+                <div className='flex-grow flex items-center'>
                   <div className='mr2'>
-                    <FontIcon className='material-icons' color='#999'>access_time</FontIcon>
+                    <FontIcon className='material-icons' color='#999'>date_range</FontIcon>
                   </div>
-                )}
-                {showTime && (
-                  <TimePicker
-                    hintText='Time'
-                    value={attrTime}
+                  <DatePicker
+                    minDate={now}
                     onChange={(evt, val) => {
-                      this.setState({ attrTime: val })
+                      this.setState({ attrDate: val })
                     }}
+                    formatDate={date => moment(date).format('D MMM YYYY')}
+                    value={attrDate}
+                    hintText='Date'
                     textFieldStyle={displayTextFieldStyle}
                   />
-                )}
+                </div>
+                <div className='flex-grow flex items-center ml2'>
+                  {showTime && (
+                    <div className='mr2'>
+                      <FontIcon className='material-icons' color='#999'>access_time</FontIcon>
+                    </div>
+                  )}
+                  {showTime && (
+                    <TimePicker
+                      hintText='Time'
+                      value={attrTime}
+                      onChange={(evt, val) => {
+                        this.setState({ attrTime: val })
+                      }}
+                      textFieldStyle={displayTextFieldStyle}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <div>
             <RaisedButton
