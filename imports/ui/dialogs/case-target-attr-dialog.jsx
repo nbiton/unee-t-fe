@@ -114,7 +114,7 @@ export default class CaseTargetAttrDialog extends React.Component<Props, State> 
             <FontIcon className='material-icons' style={closeDialogButtonStyle}>close</FontIcon>
           </IconButton>
         </div>
-        <div className='flex flex-column h6'>
+        <div className='flex flex-column h6 overflow-auto'>
           <EditableItem
             isMultiLine
             label={attrName}
