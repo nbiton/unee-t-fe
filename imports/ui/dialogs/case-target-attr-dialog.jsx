@@ -142,7 +142,11 @@ export default class CaseTargetAttrDialog extends React.Component<Props, State> 
             onEdit={val => { this.setState({ attrValue: val }) }}
             currentValue={attrValue}
             inpRef={el => { this.textInput = el }}
-            onFocus={() => this.textInput && this.textInput.getInputNode().setSelectionRange(0, attrValue.length)}
+            onFocus={() => {
+              setTimeout(() => {
+                this.textInput && this.textInput.getInputNode().setSelectionRange(0, attrValue.length)
+              }, 20)
+            }}
             rowsMax={3}
           />
           <div className='mt3 flex-grow'>
