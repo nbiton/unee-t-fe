@@ -6,8 +6,6 @@ export const UPLOAD_FLOOR_PLAN_PROGRESS = 'upload_unit_floor_plan_progress'
 export const UPLOAD_FLOOR_PLAN_ERROR = 'upload_unit_floor_plan_error'
 export const UPLOAD_FLOOR_PLAN_COMPLETED = 'upload_unit_floor_plan_completed'
 export const CHANGE_FLOOR_PLAN_URL = 'change_unit_floor_plan_url'
-// export const CHANGE_FLOOR_PLAN_URL_ERROR = 'change_unit_floor_plan_url_error'
-// export const CHANGE_FLOOR_PLAN_URL_SUCCESS = 'change_unit_floor_plan_url_success'
 
 export type UnitFloorPlanInitAction = {
   type: string,
@@ -79,17 +77,3 @@ export function changeFloorPlanUrl (unitMongoId: string, url: string): UnitFloor
     url
   }
 }
-
-// export function changeFloorPlanUrlError (unitMongoId: string): UnitFloorPlanCompleteAction {
-//   return {
-//     type: CHANGE_FLOOR_PLAN_URL_ERROR,
-//     unitMongoId
-//   }
-// }
-//
-// export function changeFloorPlanUrlSuccess (unitMongoId: string) {
-//   return {
-//     type: CHANGE_FLOOR_PLAN_URL_SUCCESS,
-//     unitMongoId
-//   }
-// }
