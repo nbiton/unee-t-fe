@@ -123,6 +123,21 @@ Meteor.methods({
         }
       }
     })
+  },
+  [`${collectionName}.disableFloorPlan`] (id) {
+    const metaData = UnitMetaData.findOne({ _id: id })
+    if (!metaData) {
+      throw new Meteor.Error(`No unit found for id ${id}`)
+    }
+    if (!metaData.ownerIds.includes(Meteor.userId())) {
+      throw new Meteor.Error('You are not one of the owners for this unit, so you are not allowed to update it')
+    }
+
+    UnitMetaData.update({ _id: id }, {
+      $set: {
+        [`floorPlanUrls.${metaData.floorPlanUrls.length - 1}.disabled`]: true
+      }
+    })
   }
 })
 

@@ -28,7 +28,7 @@ import { textInputFloatingLabelStyle, textInputUnderlineFocusStyle } from '../co
 import FileInput from '../components/file-input'
 import { UploadIcon } from '../components/generic-icons'
 import { fileInputReaderEventHandler } from '../util/dom-api'
-import { uploadFloorPlan } from '../../state/actions/unit-floor-plan.actions'
+import { disableFloorPlan, uploadFloorPlan } from '../../state/actions/unit-floor-plan.actions'
 import { fitDimensions } from '../../util/cloudinary-transformations'
 import UploadPreloader from '../components/upload-preloader'
 
@@ -57,7 +57,8 @@ type Props = {
     city: string,
     zipCode: string,
     floorPlanUrls?: Array<{
-      url: string
+      url: string,
+      disabled?: boolean
     }>
   },
   unitUsers: Array<UnitUser>,
@@ -200,9 +201,15 @@ class UnitOverviewTab extends React.Component<Props, State> {
     const unitName = metaData.displayName || unitItem.name
     const currLoginName = currentUser.bugzillaCreds.login
 
-    const floorPlanUrl = floorPlanUploadProcess
-      ? floorPlanUploadProcess.preview
-      : (metaData.floorPlanUrls && fitDimensions(metaData.floorPlanUrls.slice(-1)[0].url, window.innerWidth - 32, 256))
+    let floorPlanUrl
+    if (floorPlanUploadProcess) {
+      floorPlanUrl = floorPlanUploadProcess.preview
+    } else if (metaData.floorPlanUrls) {
+      const lastPlanUrl = metaData.floorPlanUrls.slice(-1)[0]
+      if (!lastPlanUrl.disabled) {
+        floorPlanUrl = fitDimensions(lastPlanUrl.url, window.innerWidth - 32, 256)
+      }
+    }
     return (
       (
         <div className='flex-grow bg-very-light-gray pb5'>
@@ -351,17 +358,13 @@ class UnitOverviewTab extends React.Component<Props, State> {
                         </RaisedButton>
                       </div>
                       <div className='bl b--gray-93 flex-grow'>
-                        <RaisedButton fullWidth>
-                          <FileInput onFileSelected={fileInputReaderEventHandler(
-                            (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
-                          )}>
-                            <div className='flex items-center justify-center'>
-                              <FontIcon className='material-icons' color='var(--bondi-blue)'>delete</FontIcon>
-                              <div className='ml1 bondi-blue fw5 f6'>
-                                Remove floor plan
-                              </div>
+                        <RaisedButton fullWidth onClick={() => dispatch(disableFloorPlan(metaData._id))}>
+                          <div className='flex items-center justify-center'>
+                            <FontIcon className='material-icons' color='var(--bondi-blue)'>delete</FontIcon>
+                            <div className='ml1 bondi-blue fw5 f6'>
+                              Remove floor plan
                             </div>
-                          </FileInput>
+                          </div>
                         </RaisedButton>
                       </div>
                     </div>

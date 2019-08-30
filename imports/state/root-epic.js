@@ -37,6 +37,7 @@ import { loginWithOtp } from './epics/login-with-otp'
 import { editUnitMetaData } from './epics/edit-unit-meta-data'
 import { uploadUnitFloorPlan } from './epics/upload-unit-floor-plan'
 import { changeUnitFloorPlanUrl } from './epics/change-unit-floor-plan-url'
+import { disableUnitFloorPlan } from './epics/disable-unit-floor-plan'
 
 export const rootEpic = combineEpics(
   createAttachment,
@@ -76,5 +77,6 @@ export const rootEpic = combineEpics(
   loginWithOtp,
   editUnitMetaData,
   uploadUnitFloorPlan,
-  changeUnitFloorPlanUrl
+  changeUnitFloorPlanUrl,
+  disableUnitFloorPlan
 )
