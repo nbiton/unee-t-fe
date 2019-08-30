@@ -425,7 +425,8 @@ if (Meteor.isServer) {
           state: 1,
           streetAddress: 1,
           zipCode: 1,
-          city: 1
+          city: 1,
+          floorPlanUrls: 1
         }),
         withRolesData(rolesProjByOwnership, rolesSelectionByOwnership)
       ],

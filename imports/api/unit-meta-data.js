@@ -1,5 +1,6 @@
 import { Mongo } from 'meteor/mongo'
 import { Meteor } from 'meteor/meteor'
+import randToken from 'rand-token'
 
 export const collectionName = 'unitMetaData'
 export const unitTypes = Object.freeze([
@@ -102,6 +103,26 @@ Meteor.methods({
     }
 
     UnitMetaData.update({ _id: id }, { $set: unitFields })
+  },
+  [`${collectionName}.updateFloorPlan`] (id, floorPlanUrl) {
+    const metaData = UnitMetaData.findOne({ _id: id })
+    if (!metaData) {
+      throw new Meteor.Error(`No unit found for id ${id}`)
+    }
+    if (!metaData.ownerIds.includes(Meteor.userId())) {
+      throw new Meteor.Error('You are not one of the owners for this unit, so you are not allowed to update it')
+    }
+
+    UnitMetaData.update({ _id: id }, {
+      $push: {
+        floorPlanUrls: {
+          url: floorPlanUrl,
+          addedBy: Meteor.userId(),
+          addedAt: new Date(),
+          id: randToken.generate(17)
+        }
+      }
+    })
   }
 })
 

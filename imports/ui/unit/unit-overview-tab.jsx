@@ -9,10 +9,11 @@ import IconButton from 'material-ui/IconButton'
 import FontIcon from 'material-ui/FontIcon'
 import { isEqual } from 'lodash'
 import AutoComplete from 'material-ui/AutoComplete'
+import RaisedButton from 'material-ui/RaisedButton'
 
 import { removeCleared, removeFromUnit } from '../../state/actions/unit-invite.actions'
 import { editUnitMetaData } from '../../state/actions/unit-meta-data.actions'
-import { infoItemMembers } from '../util/static-info-rendering'
+import { infoItemMembers, infoItemLabel } from '../util/static-info-rendering'
 import { placeholderEmailMatcher } from '../../util/matchers'
 import { userInfoItem } from '../../util/user'
 import ConfirmationDialog from '../dialogs/confirmation-dialog'
@@ -24,6 +25,12 @@ import { unitTypes } from '../../api/unit-meta-data'
 import MenuItem from 'material-ui/MenuItem'
 import SelectField from 'material-ui/SelectField'
 import { textInputFloatingLabelStyle, textInputUnderlineFocusStyle } from '../components/form-controls.mui-styles'
+import FileInput from '../components/file-input'
+import { UploadIcon } from '../components/generic-icons'
+import { fileInputReaderEventHandler } from '../util/dom-api'
+import { uploadFloorPlan } from '../../state/actions/unit-floor-plan.actions'
+import { fitDimensions } from '../../util/cloudinary-transformations'
+import UploadPreloader from '../components/upload-preloader'
 
 type UnitUser = {
   login: string,
@@ -48,7 +55,10 @@ type Props = {
     country: string,
     state: string,
     city: string,
-    zipCode: string
+    zipCode: string,
+    floorPlanUrls?: Array<{
+      url: string
+    }>
   },
   unitUsers: Array<UnitUser>,
   currentUser: {
@@ -69,7 +79,13 @@ type Props = {
   isOwner: boolean,
   isEditing: boolean,
   dispatch: (action: any) => void,
-  registerSaveHandler: (handler: () => void) => void
+  registerSaveHandler: (handler: () => void) => void,
+  floorPlanUploadProcess: ?{
+    unitMongoId: string,
+    preview: string,
+    percent: number,
+    error?: {}
+  }
 }
 
 type State = {
@@ -178,12 +194,15 @@ class UnitOverviewTab extends React.Component<Props, State> {
     }))
   }
   render () {
-    const { unitItem, metaData, unitUsers, isOwner, currentUser, dispatch, isEditing } = this.props
+    const { unitItem, metaData, unitUsers, isOwner, currentUser, dispatch, isEditing, floorPlanUploadProcess } = this.props
     const { showRemovalConfirmation, userToRemove, countrySearchText, country, countryValidWarning, unitType } = this.state
     const ongoingRemoval = this.getOngoingRemoval(this.props, this.state)
     const unitName = metaData.displayName || unitItem.name
     const currLoginName = currentUser.bugzillaCreds.login
 
+    const floorPlanUrl = floorPlanUploadProcess
+      ? floorPlanUploadProcess.preview
+      : (metaData.floorPlanUrls && fitDimensions(metaData.floorPlanUrls.slice(-1)[0].url, window.innerWidth - 32, 256))
     return (
       (
         <div className='flex-grow bg-very-light-gray pb5'>
@@ -297,6 +316,78 @@ class UnitOverviewTab extends React.Component<Props, State> {
             </div>
           </div>
           <div className='mt2 bg-white card-shadow-1 pa3'>
+            {infoItemLabel('Floor plan')}
+            <div className='mt2'>
+              {floorPlanUrl ? (
+                <div>
+                  <div className='w-100 h5 relative ba b--gray-93'>
+                    <img
+                      className={'obj-contain w-100 h-100' + (floorPlanUploadProcess ? ' o-60' : '')}
+                      src={floorPlanUrl}
+                      alt='Floor Plan Thumbnail'
+                    />
+                    {floorPlanUploadProcess && (
+                      <UploadPreloader
+                        stickToTop
+                        process={floorPlanUploadProcess}
+                        handleRetryUpload={proc => dispatch(uploadFloorPlan(metaData._id, proc.preview, proc.file))}
+                      />
+                    )}
+                  </div>
+                  {isEditing && !floorPlanUploadProcess && (
+                    <div className='flex relative'>
+                      <div className='flex-grow'>
+                        <RaisedButton fullWidth>
+                          <FileInput onFileSelected={fileInputReaderEventHandler(
+                            (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
+                          )}>
+                            <div className='flex items-center justify-center'>
+                              <UploadIcon fillColor='var(--bondi-blue)' />
+                              <div className='ml1 bondi-blue fw5 f6'>
+                                Upload again
+                              </div>
+                            </div>
+                          </FileInput>
+                        </RaisedButton>
+                      </div>
+                      <div className='bl b--gray-93 flex-grow'>
+                        <RaisedButton fullWidth>
+                          <FileInput onFileSelected={fileInputReaderEventHandler(
+                            (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
+                          )}>
+                            <div className='flex items-center justify-center'>
+                              <FontIcon className='material-icons' color='var(--bondi-blue)'>delete</FontIcon>
+                              <div className='ml1 bondi-blue fw5 f6'>
+                                Remove floor plan
+                              </div>
+                            </div>
+                          </FileInput>
+                        </RaisedButton>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : isEditing ? (
+                <RaisedButton fullWidth>
+                  <FileInput onFileSelected={fileInputReaderEventHandler(
+                    (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
+                  )}>
+                    <div className='flex items-center justify-center'>
+                      <UploadIcon fillColor='var(--bondi-blue)' />
+                      <div className='ml1 bondi-blue fw5 f6'>
+                        Upload floor plan
+                      </div>
+                    </div>
+                  </FileInput>
+                </RaisedButton>
+              ) : (
+                <div className='moon-gray i lh-copy tc'>
+                  (Not provided yet)
+                </div>
+              )}
+            </div>
+          </div>
+          <div className='mt2 bg-white card-shadow-1 pa3'>
             <div className='fw5 silver lh-title'>
               PEOPLE
             </div>
@@ -364,7 +455,14 @@ class UnitOverviewTab extends React.Component<Props, State> {
 }
 
 export default connect(
-  ({ unitUserRemovalState }) => ({ removalProcesses: unitUserRemovalState })
+  ({ unitUserRemovalState, unitFloorPlanUploadState }, props: Props) => {
+    const mongoId = props.metaData && props.metaData._id
+    const floorPlanUploadProcess = mongoId && unitFloorPlanUploadState.find(proc => proc.unitMongoId === mongoId)
+    return {
+      removalProcesses: unitUserRemovalState,
+      floorPlanUploadProcess
+    }
+  }
 )(createContainer(() => ({
   currentUser: Meteor.user()
 }), UnitOverviewTab))
