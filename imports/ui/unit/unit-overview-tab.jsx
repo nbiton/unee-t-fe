@@ -216,19 +216,19 @@ class UnitOverviewTab extends React.Component<Props, State> {
           <div className='bg-white card-shadow-1 pa3'>
             <div>
               {this.renderEditableField({
-                label: 'Unit Name',
+                label: 'Property Name',
                 stateVar: 'unitName',
                 isEditing
               })}
             </div>
             <div className='mt2'>
-              {infoItemMembers('Unit Group', unitItem.classification)}
+              {infoItemMembers('Property Group', unitItem.classification)}
             </div>
             <div>
               {isEditing ? (
                 <SelectField
                   value={unitType}
-                  floatingLabelText='Unit Type'
+                  floatingLabelText='Property Type'
                   floatingLabelStyle={textInputFloatingLabelStyle}
                   underlineFocusStyle={textInputUnderlineFocusStyle}
                   fullWidth
@@ -243,7 +243,7 @@ class UnitOverviewTab extends React.Component<Props, State> {
                   ))}
                 </SelectField>
               ) : (
-                <div className='mt3'>{infoItemMembers('Unit Type', metaData.unitType)}</div>
+                <div className='mt3'>{infoItemMembers('Property Type', metaData.unitType)}</div>
               )}
             </div>
             <div>
@@ -431,7 +431,7 @@ class UnitOverviewTab extends React.Component<Props, State> {
                 <div className='tc fw3'>
                   Are you sure you want to remove
                   <span className='bondi-blue'> {userToRemove.name || userToRemove.login.split('@')[0]} </span>
-                  from the unit
+                  from the property
                   <span className='b'> {unitName}</span>
                   ?
                 </div>
@@ -439,7 +439,7 @@ class UnitOverviewTab extends React.Component<Props, State> {
             ) : ''}
           >
             <div className='tc lh-copy'>
-              This person will not be able to create new cases, post any comments or receive any notifications for this unit.
+              This person will not be able to create new cases, post any comments or receive any notifications for this property.
             </div>
           </ConfirmationDialog>
           <ErrorDialog
