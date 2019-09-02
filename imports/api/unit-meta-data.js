@@ -1,6 +1,7 @@
 import { Mongo } from 'meteor/mongo'
 import { Meteor } from 'meteor/meteor'
 import randToken from 'rand-token'
+import UnitRolesData from './unit-roles-data'
 
 export const collectionName = 'unitMetaData'
 export const unitTypes = Object.freeze([
@@ -110,6 +111,14 @@ Meteor.methods({
       throw new Meteor.Error(`No unit found for id ${id}`)
     }
 
+    const unitRole = UnitRolesData.findOne({
+      unitId: id,
+      'members.id': Meteor.userId()
+    })
+    if (!unitRole) {
+      throw new Meteor.Error('You are not one of the members of this unit, so you are not allowed to update the floor plan')
+    }
+
     UnitMetaData.update({ _id: id }, {
       $push: {
         floorPlanUrls: {
@@ -125,6 +134,14 @@ Meteor.methods({
     const metaData = UnitMetaData.findOne({ _id: id })
     if (!metaData) {
       throw new Meteor.Error(`No unit found for id ${id}`)
+    }
+
+    const unitRole = UnitRolesData.findOne({
+      unitId: id,
+      'members.id': Meteor.userId()
+    })
+    if (!unitRole) {
+      throw new Meteor.Error('You are not one of the members of this unit, so you are not allowed to update the floor plan')
     }
 
     UnitMetaData.update({ _id: id }, {
