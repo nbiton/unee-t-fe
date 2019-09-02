@@ -11,6 +11,7 @@ import MenuItem from 'material-ui/MenuItem'
 import FontIcon from 'material-ui/FontIcon'
 import { CSSTransition } from 'react-transition-group'
 import FloatingActionButton from 'material-ui/FloatingActionButton'
+import RaisedButton from 'material-ui/RaisedButton'
 import moment from 'moment'
 import Units, { collectionName as unitsCollName, getUnitRoles } from '../../api/units'
 import Cases, { isClosed, severityIndex, collectionName as casesCollName } from '../../api/cases'
@@ -30,8 +31,6 @@ import UnitOverviewTab from './unit-overview-tab'
 import {
   menuItemDivStyle
 } from '../general.mui-styles'
-import FlatButton from 'material-ui/FlatButton'
-import RaisedButton from 'material-ui/RaisedButton'
 
 function NoItem ({ item, iconType }) {
   return (
