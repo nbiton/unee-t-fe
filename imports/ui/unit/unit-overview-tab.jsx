@@ -255,6 +255,70 @@ class UnitOverviewTab extends React.Component<Props, State> {
             </div>
           </div>
           <div className='mt2 bg-white card-shadow-1 pa3'>
+            {infoItemLabel('Floor plan')}
+            <div className='mt2'>
+              {floorPlanUrl ? (
+                <div>
+                  <div className='w-100 h5 relative ba b--gray-93'>
+                    <img
+                      className={'obj-contain w-100 h-100' + (floorPlanUploadProcess ? ' o-60' : '')}
+                      src={floorPlanUrl}
+                      alt='Floor Plan Thumbnail'
+                    />
+                    {floorPlanUploadProcess && (
+                      <UploadPreloader
+                        stickToTop
+                        process={floorPlanUploadProcess}
+                        handleRetryUpload={proc => dispatch(uploadFloorPlan(metaData._id, proc.preview, proc.file))}
+                      />
+                    )}
+                  </div>
+                  {!floorPlanUploadProcess && (
+                    <div className='flex relative'>
+                      <div className='flex-grow'>
+                        <RaisedButton fullWidth>
+                          <FileInput onFileSelected={fileInputReaderEventHandler(
+                            (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
+                          )}>
+                            <div className='flex items-center justify-center'>
+                              <UploadIcon fillColor='var(--bondi-blue)' />
+                              <div className='ml1 bondi-blue fw5 f6'>
+                                Upload again
+                              </div>
+                            </div>
+                          </FileInput>
+                        </RaisedButton>
+                      </div>
+                      <div className='bl b--gray-93 flex-grow'>
+                        <RaisedButton fullWidth onClick={() => dispatch(disableFloorPlan(metaData._id))}>
+                          <div className='flex items-center justify-center'>
+                            <FontIcon className='material-icons' color='var(--bondi-blue)'>delete</FontIcon>
+                            <div className='ml1 bondi-blue fw5 f6'>
+                              Remove floor plan
+                            </div>
+                          </div>
+                        </RaisedButton>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <RaisedButton fullWidth>
+                  <FileInput onFileSelected={fileInputReaderEventHandler(
+                    (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
+                  )}>
+                    <div className='flex items-center justify-center'>
+                      <UploadIcon fillColor='var(--bondi-blue)' />
+                      <div className='ml1 bondi-blue fw5 f6'>
+                        Upload floor plan
+                      </div>
+                    </div>
+                  </FileInput>
+                </RaisedButton>
+              )}
+            </div>
+          </div>
+          <div className='mt2 bg-white card-shadow-1 pa3'>
             <div className='fw5 silver lh-title'>
               ADDRESS
             </div>
@@ -320,70 +384,6 @@ class UnitOverviewTab extends React.Component<Props, State> {
                   isEditing
                 })}
               </div>
-            </div>
-          </div>
-          <div className='mt2 bg-white card-shadow-1 pa3'>
-            {infoItemLabel('Floor plan')}
-            <div className='mt2'>
-              {floorPlanUrl ? (
-                <div>
-                  <div className='w-100 h5 relative ba b--gray-93'>
-                    <img
-                      className={'obj-contain w-100 h-100' + (floorPlanUploadProcess ? ' o-60' : '')}
-                      src={floorPlanUrl}
-                      alt='Floor Plan Thumbnail'
-                    />
-                    {floorPlanUploadProcess && (
-                      <UploadPreloader
-                        stickToTop
-                        process={floorPlanUploadProcess}
-                        handleRetryUpload={proc => dispatch(uploadFloorPlan(metaData._id, proc.preview, proc.file))}
-                      />
-                    )}
-                  </div>
-                  {!floorPlanUploadProcess && (
-                    <div className='flex relative'>
-                      <div className='flex-grow'>
-                        <RaisedButton fullWidth>
-                          <FileInput onFileSelected={fileInputReaderEventHandler(
-                            (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
-                          )}>
-                            <div className='flex items-center justify-center'>
-                              <UploadIcon fillColor='var(--bondi-blue)' />
-                              <div className='ml1 bondi-blue fw5 f6'>
-                                Upload again
-                              </div>
-                            </div>
-                          </FileInput>
-                        </RaisedButton>
-                      </div>
-                      <div className='bl b--gray-93 flex-grow'>
-                        <RaisedButton fullWidth onClick={() => dispatch(disableFloorPlan(metaData._id))}>
-                          <div className='flex items-center justify-center'>
-                            <FontIcon className='material-icons' color='var(--bondi-blue)'>delete</FontIcon>
-                            <div className='ml1 bondi-blue fw5 f6'>
-                              Remove floor plan
-                            </div>
-                          </div>
-                        </RaisedButton>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <RaisedButton fullWidth>
-                  <FileInput onFileSelected={fileInputReaderEventHandler(
-                    (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
-                  )}>
-                    <div className='flex items-center justify-center'>
-                      <UploadIcon fillColor='var(--bondi-blue)' />
-                      <div className='ml1 bondi-blue fw5 f6'>
-                        Upload floor plan
-                      </div>
-                    </div>
-                  </FileInput>
-                </RaisedButton>
-              )}
             </div>
           </div>
           <div className='mt2 bg-white card-shadow-1 pa3'>
