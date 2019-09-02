@@ -341,7 +341,7 @@ class UnitOverviewTab extends React.Component<Props, State> {
                       />
                     )}
                   </div>
-                  {isEditing && !floorPlanUploadProcess && (
+                  {!floorPlanUploadProcess && (
                     <div className='flex relative'>
                       <div className='flex-grow'>
                         <RaisedButton fullWidth>
@@ -370,7 +370,7 @@ class UnitOverviewTab extends React.Component<Props, State> {
                     </div>
                   )}
                 </div>
-              ) : isEditing ? (
+              ) : (
                 <RaisedButton fullWidth>
                   <FileInput onFileSelected={fileInputReaderEventHandler(
                     (preview, file) => dispatch(uploadFloorPlan(metaData._id, preview, file))
@@ -383,10 +383,6 @@ class UnitOverviewTab extends React.Component<Props, State> {
                     </div>
                   </FileInput>
                 </RaisedButton>
-              ) : (
-                <div className='moon-gray i lh-copy tc'>
-                  (Not provided yet)
-                </div>
               )}
             </div>
           </div>
