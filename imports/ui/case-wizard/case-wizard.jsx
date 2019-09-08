@@ -144,9 +144,12 @@ class CaseWizard extends Component {
   handleSubmit = evt => {
     evt.preventDefault()
     if (!this.checkFormInvalid()) {
-      const { inputValues: { mandatory, optional }, newUserEmail, newUserIsOccupant } = this.state
+      const { inputValues: { mandatory, optional }, newUserEmail, newUserIsOccupant, floorPlanPins } = this.state
       if (optional.details === '') {
         optional.details = mandatory.title
+      }
+      if (floorPlanPins.length) {
+        optional.floorPlanPins = floorPlanPins.map(({ x, y }) => ({ x, y }))
       }
       this.props.dispatch(createCase(
         Object.assign(
