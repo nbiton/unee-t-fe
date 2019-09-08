@@ -16,11 +16,16 @@ type Callbacks = {
   onEngaged?: () => void
 }
 
+type Options = {
+  disableNormalPan?: boolean
+}
+
 export const panZoomHandler = (
   element: HTMLElement,
   imageCurrDims: ImageDimms,
   { minZoom, maxZoom }: { minZoom: number, maxZoom: number },
-  { applyTransform, onEngaged = () => {} }: Callbacks
+  { applyTransform, onEngaged = () => {} }: Callbacks,
+  { disableNormalPan = false }: Options = {}
 ) => {
   const ham = new Hammer(element)
   ham.get('pan').set({ direction: Hammer.DIRECTION_ALL })
@@ -175,12 +180,14 @@ export const panZoomHandler = (
 
   ham.on('pinch', evt => handleZoom(evt.center, evt.scale))
   ham.on('pinchend', evt => handleZoomEnd(evt.center, evt.scale))
-  ham.on('pan', ev => {
-    if (!isPinching) {
-      handleMove(ev.deltaX, ev.deltaY, ev.isFinal)
-    }
-  })
-  element.addEventListener('mousedown', (evt: MouseEvent) => evt.preventDefault())
+  if (!disableNormalPan) {
+    ham.on('pan', ev => {
+      if (!isPinching) {
+        handleMove(ev.deltaX, ev.deltaY, ev.isFinal)
+      }
+    })
+    element.addEventListener('mousedown', (evt: MouseEvent) => evt.preventDefault())
+  }
   element.addEventListener('wheel', (evt: WheelEvent) => {
     evt.preventDefault()
 
