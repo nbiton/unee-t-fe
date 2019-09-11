@@ -38,7 +38,6 @@ import {
   controlLabelStyle
 } from '../components/form-controls.mui-styles'
 import { MarkerIcon } from '../components/generic-icons'
-import { fitDimensions } from '../../util/cloudinary-transformations'
 
 class CaseWizard extends Component {
   floorPlanContainer = null
@@ -170,16 +169,20 @@ class CaseWizard extends Component {
 
     const widthRatio = parent.offsetWidth / image.offsetWidth
     const heightRatio = parent.offsetHeight / image.offsetHeight
+
     const imageScale = widthRatio > heightRatio ? heightRatio : widthRatio
 
     const initWidth = image.offsetWidth * imageScale
     const initHeight = image.offsetHeight * imageScale
+    const activeFloorPlan = this.getActiveFloorPlan()
+    const initScale = initWidth / activeFloorPlan.dimensions.width
     const imageCurrDims = this.imageCurrDims = {
       x: (parent.offsetWidth / 2 - initWidth / 2),
       y: (parent.offsetHeight / 2 - initHeight / 2),
       width: initWidth,
       height: initHeight,
-      currScale: 1
+      currScale: 1,
+      initScale
     }
 
     Object.assign(image.style, {
@@ -208,8 +211,8 @@ class CaseWizard extends Component {
           const el = this.floorPlanPinMap[obj.id]
 
           Object.assign(el.style, {
-            left: (x + (obj.x * scale) - 12) + 'px',
-            top: (y + (obj.y * scale) - 20) + 'px'
+            left: (x + (obj.x * scale * initScale) - 12) + 'px',
+            top: (y + (obj.y * scale * initScale) - 20) + 'px'
           })
         })
       }
@@ -222,8 +225,8 @@ class CaseWizard extends Component {
     const boundingRect = this.floorPlanContainer.getBoundingClientRect()
     const relMousePos = { x: evt.clientX - boundingRect.left, y: evt.clientY - boundingRect.top }
     const markerObj = {
-      x: (relMousePos.x - this.imageCurrDims.x) / this.imageCurrDims.currScale,
-      y: (relMousePos.y - this.imageCurrDims.y) / this.imageCurrDims.currScale,
+      x: (relMousePos.x - this.imageCurrDims.x) / (this.imageCurrDims.currScale * this.imageCurrDims.initScale),
+      y: (relMousePos.y - this.imageCurrDims.y) / (this.imageCurrDims.currScale * this.imageCurrDims.initScale),
       id: randToken.generate(12)
     }
     this.setState({
@@ -253,6 +256,16 @@ class CaseWizard extends Component {
     return filteredRoles
   }
 
+  getActiveFloorPlan () {
+    const { unitItem } = this.props
+    if (unitItem.floorPlanUrls) {
+      const lastPlanUrl = unitItem.floorPlanUrls.slice(-1)[0]
+      if (!lastPlanUrl.disabled) {
+        return lastPlanUrl
+      }
+    }
+  }
+
   render () {
     const { isLoading, fieldValues, unitItem, dispatch, error, inProgress, reportItem } = this.props
     if (isLoading) {
@@ -264,14 +277,9 @@ class CaseWizard extends Component {
     const { category, subCategory } = optional
 
     const rolesToRender = this.filterRolesBasedOnOwnership()
-    let floorPlanUrl
 
-    if (unitItem.floorPlanUrls) {
-      const lastPlanUrl = unitItem.floorPlanUrls.slice(-1)[0]
-      if (!lastPlanUrl.disabled) {
-        floorPlanUrl = fitDimensions(lastPlanUrl.url, window.innerWidth - 32, 256)
-      }
-    }
+    const activeFloorPlan = this.getActiveFloorPlan()
+    // const floorPlanUrl = activeFloorPlan && fitDimensions(activeFloorPlan.url, window.innerWidth - 32, 256)
     return (
       <div className='full-height flex flex-column'>
         <InnerAppBar title='New Case' onBack={() => dispatch(goBack())} />
@@ -373,42 +381,44 @@ class CaseWizard extends Component {
                 </SelectField>
               </div>
             </div>
-            <div className='mt1'>
-              <div className='flex items-center'>
-                <MarkerIcon style={{ width: '12px', height: '17px' }} fillColor='var(--bondi-blue)' />
-                <div className='ml2 f6 b bondi-blue'>Pin on Floor plan</div>
-              </div>
-              <div
-                className='mt3 w-100 h5 relative ba b--gray-93 overflow-hidden'
-                ref={el => { this.floorPlanContainer = el }}
-              >
-                <div className='absolute top-0 left-0 right-0 bottom-0 overflow-hidden' onClick={this.handleFloorPlanContainerClicked}>
-                  <img
-                    onLoad={this.handleFloorPlanLoaded}
-                    className='obj-contain w-100'
-                    src={floorPlanUrl}
-                    alt='Floor Plan Thumbnail'
-                  />
+            {activeFloorPlan && (
+              <div className='mt1'>
+                <div className='flex items-center'>
+                  <MarkerIcon style={{ width: '12px', height: '17px' }} fillColor='var(--bondi-blue)' />
+                  <div className='ml2 f6 b bondi-blue'>Pin on Floor plan</div>
                 </div>
-                {floorPlanPins.map(pin => (
-                  <div key={pin.id} className='absolute' ref={el => { this.floorPlanPinMap[pin.id] = el }} style={{
-                    left: (this.imageCurrDims.x + (pin.x * this.imageCurrDims.currScale) - 12) + 'px',
-                    top: (this.imageCurrDims.y + (pin.y * this.imageCurrDims.currScale) - 20) + 'px'
-                  }} onClick={() => {
-                    delete this.floorPlanPinMap[pin.id]
-                    const modifiedList = floorPlanPins.filter(p => p.id !== pin.id)
-                    this.setState({
-                      floorPlanPins: modifiedList
-                    })
-                  }}>
-                    <FontIcon className='material-icons' color='var(--attention-red)' style={{ fontSize: '28px' }}>room</FontIcon>
+                <div
+                  className='mt3 w-100 h5 relative ba b--gray-93 overflow-hidden'
+                  ref={el => { this.floorPlanContainer = el }}
+                >
+                  <div className='absolute top-0 left-0 right-0 bottom-0 overflow-hidden' onClick={this.handleFloorPlanContainerClicked}>
+                    <img
+                      onLoad={this.handleFloorPlanLoaded}
+                      className='obj-contain w-100'
+                      src={activeFloorPlan.url}
+                      alt='Floor Plan Thumbnail'
+                    />
                   </div>
-                ))}
+                  {floorPlanPins.map(pin => (
+                    <div key={pin.id} className='absolute' ref={el => { this.floorPlanPinMap[pin.id] = el }} style={{
+                      left: (this.imageCurrDims.x + (pin.x * this.imageCurrDims.currScale * this.imageCurrDims.initScale) - 12) + 'px',
+                      top: (this.imageCurrDims.y + (pin.y * this.imageCurrDims.currScale * this.imageCurrDims.initScale) - 20) + 'px'
+                    }} onClick={() => {
+                      delete this.floorPlanPinMap[pin.id]
+                      const modifiedList = floorPlanPins.filter(p => p.id !== pin.id)
+                      this.setState({
+                        floorPlanPins: modifiedList
+                      })
+                    }}>
+                      <FontIcon className='material-icons' color='var(--attention-red)' style={{ fontSize: '28px' }}>room</FontIcon>
+                    </div>
+                  ))}
+                </div>
+                <div className='mt2 f7 gray lh-copy'>
+                  Tap on the floorplan to specify the location in the unit. Pinch or spread with two fingers to zoom. Tap an existing marker to remove it.
+                </div>
               </div>
-              <div className='mt2 f7 gray lh-copy'>
-                Tap on the floorplan to specify the location in the unit. Pinch or spread with two fingers to zoom. Tap an existing marker to remove it.
-              </div>
-            </div>
+            )}
 
             {rolesToRender.length === 1 && rolesToRender[0].areYouDefAssignee ? (
               <p className='f7 gray ma0 mt2'>
