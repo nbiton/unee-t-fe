@@ -8,7 +8,7 @@ import RaisedButton from 'material-ui/RaisedButton'
 import IconButton from 'material-ui/IconButton'
 import { negate, flow } from 'lodash'
 import moment from 'moment'
-import { attachmentTextMatcher, placeholderEmailMatcher } from '../../util/matchers'
+import { attachmentTextMatcher, floorPlanTextMatcher, placeholderEmailMatcher } from '../../util/matchers'
 import { userInfoItem } from '/imports/util/user.js'
 import { fillDimensions } from '../../util/cloudinary-transformations'
 import UsersSearchList from '../components/users-search-list'
@@ -20,6 +20,9 @@ import { infoItemLabel, InfoItemContainer, InfoItemRow } from '../util/static-in
 import AddUserControlLine from '../components/add-user-control-line'
 import AssigneeSelectionList from '../components/assignee-selection-list'
 import CaseTargetAttrDialog from '../dialogs/case-target-attr-dialog'
+import { panZoomHandler } from '../util/pan-zoom-handler'
+import { changeFloorPlanPins } from '/imports/state/actions/case-floor-plan-pins.actions'
+import randToken from 'rand-token'
 
 const mediaItemsPadding = 4 // Corresponds with the classNames set to the media items
 const mediaItemRowCount = 3
@@ -63,8 +66,11 @@ const renderEditableTargetAttribute = (
 
 class CaseDetails extends Component {
   audioRefs = {}
+  floorPlanPinMap = {}
   imageMediaContainer = null
   audioMediaContainer = null
+  imageCurrDims = null
+
   constructor (props) {
     super(props)
     this.state = {
@@ -77,7 +83,11 @@ class CaseDetails extends Component {
       audioDurations: {},
       playingAudioId: null,
       computedAudioMediaItemWidth: 100,
-      computedImageMediaItemWidth: 100
+      computedImageMediaItemWidth: 100,
+      isEditingPins: false,
+      floorPlanPins: [],
+      floorPlan: null,
+      isFloorPlanLoaded: false
     }
   }
 
@@ -89,6 +99,7 @@ class CaseDetails extends Component {
 
   componentDidMount () {
     this.recalcMediaItemsWidth()
+    this.resolveFloorPlan(this.props.comments)
   }
 
   componentDidUpdate () {
@@ -104,6 +115,27 @@ class CaseDetails extends Component {
     if (nextProps.unitUsers !== this.props.unitUsers) {
       this.setState({
         normalizedUnitUsers: this.normalizeUnitUsers()
+      })
+    }
+    if (nextProps.comments !== this.props.comments) {
+      this.resolveFloorPlan(nextProps.comments)
+    }
+  }
+
+  resolveFloorPlan = comments => {
+    const { unitMetaData } = this.props
+    const floorPlanComment = comments.slice().reverse().find(comment => floorPlanTextMatcher(comment.text))
+    if (!floorPlanComment) {
+      this.setState({
+        floorPlanPins: [],
+        floorPlan: null
+      })
+    } else {
+      const { id, pins } = floorPlanTextMatcher(floorPlanComment.text)
+      const floorPlan = unitMetaData.floorPlanUrls && unitMetaData.floorPlanUrls.find(f => f.id === id)
+      this.setState({
+        floorPlanPins: pins.map(pin => ({ x: pin[0], y: pin[1], id: randToken.generate(12) })),
+        floorPlan
       })
     }
   }
@@ -563,7 +595,7 @@ class CaseDetails extends Component {
 
   render () {
     const { caseItem, comments, unitItem, caseUserTypes, pendingInvitations, caseUsersState, userId, userBzLogin, caseFieldValues } = this.props
-    const { normalizedUnitUsers } = this.state
+    const { normalizedUnitUsers, floorPlanPins, floorPlan } = this.state
     let successfullyAddedUsers, addUsersError
     if (parseInt(caseUsersState.caseId) === parseInt(caseItem.id)) {
       successfullyAddedUsers = caseUsersState.added
@@ -580,6 +612,7 @@ class CaseDetails extends Component {
         {this.renderStatusLine(caseItem, caseFieldValues)}
         {this.renderCategoriesLine(caseItem, caseFieldValues)}
         {this.renderPrioritySeverityLine(caseItem, caseFieldValues)}
+        {this.renderFloorPlan(floorPlan, floorPlanPins)}
         {this.renderCreatedBy(caseUserTypes.creator)}
         {this.renderAssignedTo(
           caseUserTypes.assignee, normalizedUnitUsers, pendingInvitations, isUnitOwner, unitRoleType
@@ -593,6 +626,132 @@ class CaseDetails extends Component {
       </div>
     )
   }
+
+  handleFloorPlanImageLoaded = (evt, floorPlan, pins) => {
+    const image = evt.target
+    const parent = image.parentNode
+
+    const parWidth = parent.offsetWidth - 2 // borders
+    const parHeight = parent.offsetHeight - 2 // borders
+
+    const widthRatio = parWidth / image.offsetWidth
+    const heightRatio = parHeight / image.offsetHeight
+    const imageScale = widthRatio > heightRatio ? heightRatio : widthRatio
+
+    const initWidth = image.offsetWidth * imageScale
+    const initHeight = image.offsetHeight * imageScale
+
+    const initScale = initWidth / floorPlan.dimensions.width
+    const imageX = (parWidth / 2 - initWidth / 2)
+    const imageY = (parHeight / 2 - initHeight / 2)
+    const imageCurrDims = this.imageCurrDims = {
+      x: imageX,
+      y: imageY,
+      width: initWidth,
+      height: initHeight,
+      currScale: 1,
+      initScale
+    }
+
+    Object.assign(image.style, {
+      position: 'absolute',
+      left: imageX + 'px',
+      top: imageY + 'px',
+      width: initWidth + 'px',
+      height: initHeight + 'px'
+    })
+
+    this.setState({
+      isFloorPlanLoaded: true
+    })
+
+    panZoomHandler(parent, imageCurrDims, {
+      minZoom: 1,
+      maxZoom: 3
+    }, {
+      applyTransform: ({ x, y, scale }) => {
+        Object.assign(image.style, {
+          left: x + 'px',
+          top: y + 'px',
+          width: initWidth * scale + 'px',
+          height: initHeight * scale + 'px'
+        })
+
+        const { floorPlanPins } = this.state
+
+        floorPlanPins.forEach(obj => {
+          const el = this.floorPlanPinMap[obj.id]
+
+          Object.assign(el.style, {
+            left: (x + (obj.x * scale * initScale) - 12) + 'px',
+            top: (y + (obj.y * scale * initScale) - 20) + 'px'
+          })
+        })
+      }
+    })
+  }
+
+  handleFloorPlanContainerClicked = evt => {
+    if (this.state.isEditingPins) {
+      const boundingRect = this.floorPlanContainer.getBoundingClientRect()
+      const relMousePos = { x: evt.clientX - boundingRect.left, y: evt.clientY - boundingRect.top }
+      const markerObj = {
+        x: (relMousePos.x - this.imageCurrDims.x) / (this.imageCurrDims.currScale * this.imageCurrDims.initScale),
+        y: (relMousePos.y - this.imageCurrDims.y) / (this.imageCurrDims.currScale * this.imageCurrDims.initScale),
+        id: randToken.generate(12)
+      }
+      this.setState({
+        floorPlanPins: this.state.floorPlanPins.concat([markerObj])
+      })
+    }
+  }
+
+  saveFloorPlanPins = () => {
+    const { dispatch, caseItem } = this.props
+    const { floorPlanPins, floorPlan } = this.state
+    dispatch(changeFloorPlanPins(caseItem.id, floorPlanPins, floorPlan.id))
+  }
+
+  renderFloorPlan (floorPlan, pins) {
+    const { isEditingPins, isFloorPlanLoaded } = this.state
+    return (
+      <div className='bt bw3 b--light-gray ph3 pv2'>
+        <div className='flex'>
+          <div className='flex-grow'>
+            {infoItemLabel('Location on floor plan')}
+          </div>
+          <a className='mt1 link f7 bondi-blue underline' onClick={() => {
+            if (isEditingPins) {
+              this.saveFloorPlanPins()
+            }
+            this.setState({ isEditingPins: !isEditingPins })
+          }}>
+            {isEditingPins ? 'Save pins' : 'Edit pins'}
+          </a>
+        </div>
+        <div className='mt1 overflow-hidden h5 relative ba b--gray-93' onDoubleClick={this.handleFloorPlanContainerClicked} ref={el => { this.floorPlanContainer = el }}>
+          {floorPlan && (
+            <img className='w-100 obj-contain' src={floorPlan.url} alt={floorPlan.url} onLoad={evt => this.handleFloorPlanImageLoaded(evt, floorPlan, pins)} />
+          )}
+          {isFloorPlanLoaded && pins.map(pin => (
+            <div key={pin.id} className='absolute' ref={el => { this.floorPlanPinMap[pin.id] = el }} style={{
+              left: (this.imageCurrDims.x + (pin.x * this.imageCurrDims.currScale * this.imageCurrDims.initScale) - 12) + 'px',
+              top: (this.imageCurrDims.y + (pin.y * this.imageCurrDims.currScale * this.imageCurrDims.initScale) - 20) + 'px'
+            }} onClick={isEditingPins && (() => {
+              delete this.floorPlanPinMap[pin.id]
+              const modifiedList = pins.filter(p => p.id !== pin.id)
+              this.setState({
+                floorPlanPins: modifiedList
+              })
+            })}>
+              <FontIcon className='material-icons' color='var(--attention-red)' style={{ fontSize: '28px' }}>room</FontIcon>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   renderMediaSection (comments) {
     const {
       audioDurations, playingAudioId, computedAudioMediaItemWidth: audioSize, computedImageMediaItemWidth: imageSize
@@ -704,7 +863,8 @@ CaseDetails.propTypes = {
   caseUsersState: PropTypes.object.isRequired,
   pendingInvitations: PropTypes.array,
   userBzLogin: PropTypes.string.isRequired,
-  caseFieldValues: PropTypes.object.isRequired
+  caseFieldValues: PropTypes.object.isRequired,
+  unitMetaData: PropTypes.object.isRequired
 }
 
 export default connect(() => ({}))(withRouter(CaseDetails))
