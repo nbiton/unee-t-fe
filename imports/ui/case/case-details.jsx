@@ -126,9 +126,10 @@ class CaseDetails extends Component {
     const { unitMetaData } = this.props
     const floorPlanComment = comments.slice().reverse().find(comment => floorPlanTextMatcher(comment.text))
     if (!floorPlanComment) {
+      const floorPlan = unitMetaData.floorPlanUrls && unitMetaData.floorPlanUrls.slice(-1)[0]
       this.setState({
         floorPlanPins: [],
-        floorPlan: null
+        floorPlan
       })
     } else {
       const { id, pins } = floorPlanTextMatcher(floorPlanComment.text)
@@ -627,7 +628,7 @@ class CaseDetails extends Component {
     )
   }
 
-  handleFloorPlanImageLoaded = (evt, floorPlan, pins) => {
+  handleFloorPlanImageLoaded = (evt, floorPlan) => {
     const image = evt.target
     const parent = image.parentNode
 
@@ -726,7 +727,9 @@ class CaseDetails extends Component {
             }
             this.setState({ isEditingPins: !isEditingPins })
           }}>
-            {isEditingPins ? 'Save pins' : 'Edit pins'}
+            {isEditingPins
+              ? 'Save pins'
+              : pins.length ? 'Edit pins' : 'Add pins'}
           </a>
         </div>
         <div className='mt1 overflow-hidden h5 relative ba b--gray-93' onDoubleClick={this.handleFloorPlanContainerClicked} ref={el => { this.floorPlanContainer = el }}>
