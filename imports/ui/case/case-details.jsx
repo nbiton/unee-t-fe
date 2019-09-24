@@ -6,7 +6,7 @@ import { connect } from 'react-redux'
 import FontIcon from 'material-ui/FontIcon'
 import RaisedButton from 'material-ui/RaisedButton'
 import IconButton from 'material-ui/IconButton'
-import { negate, flow } from 'lodash'
+import { negate, flow, isEqual } from 'lodash'
 import moment from 'moment'
 import { attachmentTextMatcher, floorPlanTextMatcher, placeholderEmailMatcher } from '../../util/matchers'
 import { userInfoItem } from '/imports/util/user.js'
@@ -86,6 +86,7 @@ class CaseDetails extends Component {
       computedImageMediaItemWidth: 100,
       isEditingPins: false,
       floorPlanPins: [],
+      savedFloorPlanPins: [],
       floorPlan: null,
       isFloorPlanLoaded: false
     }
@@ -134,8 +135,10 @@ class CaseDetails extends Component {
     } else {
       const { id, pins } = floorPlanTextMatcher(floorPlanComment.text)
       const floorPlan = unitMetaData.floorPlanUrls && unitMetaData.floorPlanUrls.find(f => f.id === id)
+      const translatedPins = pins.map(pin => ({ x: pin[0], y: pin[1], id: randToken.generate(12) }))
       this.setState({
-        floorPlanPins: pins.map(pin => ({ x: pin[0], y: pin[1], id: randToken.generate(12) })),
+        floorPlanPins: translatedPins,
+        savedFloorPlanPins: translatedPins,
         floorPlan
       })
     }
@@ -722,7 +725,8 @@ class CaseDetails extends Component {
             {infoItemLabel('Location on floor plan')}
           </div>
           <a className='mt1 link f7 bondi-blue underline' onClick={() => {
-            if (isEditingPins) {
+            const { savedFloorPlanPins, floorPlanPins } = this.state
+            if (isEditingPins && !isEqual(savedFloorPlanPins, floorPlanPins)) {
               this.saveFloorPlanPins()
             }
             this.setState({ isEditingPins: !isEditingPins })
