@@ -8,11 +8,9 @@ import { withRouter } from 'react-router-dom'
 import TextField from 'material-ui/TextField'
 import SelectField from 'material-ui/SelectField'
 import MenuItem from 'material-ui/MenuItem'
-import FontIcon from 'material-ui/FontIcon'
 import RaisedButton from 'material-ui/RaisedButton'
 import { RadioButton, RadioButtonGroup } from 'material-ui/RadioButton'
 import CircularProgress from 'material-ui/CircularProgress'
-import randToken from 'rand-token'
 import CaseFieldValues, { collectionName as fieldValsCollName } from '../../api/case-field-values'
 import Reports, { collectionName as reportsCollName } from '../../api/reports'
 import UnitMetaData from '../../api/unit-meta-data'
@@ -28,7 +26,6 @@ import { roleCanBeOccupantMatcher } from '../../util/matchers'
 import { emailValidator } from '../../util/validators'
 import InputRow from '../components/input-row'
 import { infoItemMembers } from '../util/static-info-rendering'
-import { panZoomHandler } from '../util/pan-zoom-handler'
 
 import {
   textInputFloatingLabelStyle,
@@ -38,12 +35,9 @@ import {
   controlLabelStyle
 } from '../components/form-controls.mui-styles'
 import { MarkerIcon } from '../components/generic-icons'
+import FloorPlanEditor from '../components/floor-plan-editor'
 
 class CaseWizard extends Component {
-  floorPlanContainer = null
-  imageCurrDims = null
-  floorPlanPinMap = {}
-
   constructor () {
     super(...arguments)
     this.state = {
@@ -161,75 +155,6 @@ class CaseWizard extends Component {
         this.props.reportItem
       ))
     }
-  }
-
-  handleFloorPlanLoaded = evt => {
-    const image = evt.target
-    const parent = this.floorPlanContainer
-
-    const widthRatio = parent.offsetWidth / image.offsetWidth
-    const heightRatio = parent.offsetHeight / image.offsetHeight
-
-    const imageScale = widthRatio > heightRatio ? heightRatio : widthRatio
-
-    const initWidth = image.offsetWidth * imageScale
-    const initHeight = image.offsetHeight * imageScale
-    const activeFloorPlan = this.getActiveFloorPlan()
-    const initScale = initWidth / activeFloorPlan.dimensions.width
-    const imageCurrDims = this.imageCurrDims = {
-      x: (parent.offsetWidth / 2 - initWidth / 2),
-      y: (parent.offsetHeight / 2 - initHeight / 2),
-      width: initWidth,
-      height: initHeight,
-      currScale: 1,
-      initScale
-    }
-
-    Object.assign(image.style, {
-      position: 'absolute',
-      left: imageCurrDims.x + 'px',
-      top: imageCurrDims.y + 'px',
-      width: imageCurrDims.width + 'px',
-      height: imageCurrDims.height + 'px'
-    })
-
-    panZoomHandler(parent, imageCurrDims, {
-      minZoom: 1,
-      maxZoom: 3
-    }, {
-      applyTransform: ({ x, y, scale }) => {
-        Object.assign(image.style, {
-          left: x + 'px',
-          top: y + 'px',
-          width: initWidth * scale + 'px',
-          height: initHeight * scale + 'px'
-        })
-
-        const { floorPlanPins } = this.state
-
-        floorPlanPins.forEach(obj => {
-          const el = this.floorPlanPinMap[obj.id]
-
-          Object.assign(el.style, {
-            left: (x + (obj.x * scale * initScale) - 12) + 'px',
-            top: (y + (obj.y * scale * initScale) - 20) + 'px'
-          })
-        })
-      }
-    })
-  }
-
-  handleFloorPlanContainerClicked = evt => {
-    const boundingRect = this.floorPlanContainer.getBoundingClientRect()
-    const relMousePos = { x: evt.clientX - boundingRect.left, y: evt.clientY - boundingRect.top }
-    const markerObj = {
-      x: (relMousePos.x - this.imageCurrDims.x) / (this.imageCurrDims.currScale * this.imageCurrDims.initScale),
-      y: (relMousePos.y - this.imageCurrDims.y) / (this.imageCurrDims.currScale * this.imageCurrDims.initScale),
-      id: randToken.generate(12)
-    }
-    this.setState({
-      floorPlanPins: this.state.floorPlanPins.concat([markerObj])
-    })
   }
 
   checkFormInvalid = () => {
@@ -385,32 +310,14 @@ class CaseWizard extends Component {
                   <MarkerIcon style={{ width: '12px', height: '17px' }} fillColor='var(--bondi-blue)' />
                   <div className='ml2 f6 b bondi-blue'>Pin on Floor plan</div>
                 </div>
-                <div
-                  className='mt3 w-100 h5 relative ba b--gray-93 overflow-hidden'
-                  ref={el => { this.floorPlanContainer = el }}
-                >
-                  <div className='absolute top-0 left-0 right-0 bottom-0 overflow-hidden' onDoubleClick={this.handleFloorPlanContainerClicked}>
-                    <img
-                      onLoad={this.handleFloorPlanLoaded}
-                      className='obj-contain w-100'
-                      src={activeFloorPlan.url}
-                      alt='Floor Plan Thumbnail'
-                    />
-                  </div>
-                  {floorPlanPins.map(pin => (
-                    <div key={pin.id} className='absolute' ref={el => { this.floorPlanPinMap[pin.id] = el }} style={{
-                      left: (this.imageCurrDims.x + (pin.x * this.imageCurrDims.currScale * this.imageCurrDims.initScale) - 12) + 'px',
-                      top: (this.imageCurrDims.y + (pin.y * this.imageCurrDims.currScale * this.imageCurrDims.initScale) - 20) + 'px'
-                    }} onClick={() => {
-                      delete this.floorPlanPinMap[pin.id]
-                      const modifiedList = floorPlanPins.filter(p => p.id !== pin.id)
-                      this.setState({
-                        floorPlanPins: modifiedList
-                      })
-                    }}>
-                      <FontIcon className='material-icons' color='var(--attention-red)' style={{ fontSize: '28px' }}>room</FontIcon>
-                    </div>
-                  ))}
+                <div className='mt3 w-100 ba b--gray-93'>
+                  <FloorPlanEditor
+                    pins={floorPlanPins}
+                    floorPlan={activeFloorPlan}
+                    onPinsChanged={pins => this.setState({ floorPlanPins: pins })}
+                    isEditing
+                    isMovable
+                  />
                 </div>
                 <div className='mt2 f7 gray lh-copy'>
                   <span className='b'>Double tap</span> on the floorplan to specify the location in the unit. Swipe to pan. Pinch or spread with two fingers to zoom. Tap an existing marker to remove it.
