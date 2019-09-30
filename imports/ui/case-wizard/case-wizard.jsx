@@ -36,6 +36,7 @@ import {
 } from '../components/form-controls.mui-styles'
 import { MarkerIcon } from '../components/generic-icons'
 import FloorPlanEditor from '../components/floor-plan-editor'
+import FloorPlanUploader from '../components/floor-plan-uploader'
 
 class CaseWizard extends Component {
   constructor () {
@@ -202,7 +203,6 @@ class CaseWizard extends Component {
     const rolesToRender = this.filterRolesBasedOnOwnership()
 
     const activeFloorPlan = this.getActiveFloorPlan()
-    // const floorPlanUrl = activeFloorPlan && fitDimensions(activeFloorPlan.url, window.innerWidth - 32, 256)
     return (
       <div className='full-height flex flex-column'>
         <InnerAppBar title='New Case' onBack={() => dispatch(goBack())} />
@@ -304,26 +304,30 @@ class CaseWizard extends Component {
                 </SelectField>
               </div>
             </div>
-            {activeFloorPlan && (
-              <div className='mt1'>
-                <div className='flex items-center'>
-                  <MarkerIcon style={{ width: '12px', height: '17px' }} fillColor='var(--bondi-blue)' />
-                  <div className='ml2 f6 b bondi-blue'>Pin on Floor plan</div>
-                </div>
-                <div className='mt3 w-100 ba b--gray-93'>
-                  <FloorPlanEditor
-                    pins={floorPlanPins}
-                    floorPlan={activeFloorPlan}
-                    onPinsChanged={pins => this.setState({ floorPlanPins: pins })}
-                    isEditing
-                    isMovable
-                  />
-                </div>
-                <div className='mt2 f7 gray lh-copy'>
-                  <span className='b'>Double tap</span> on the floorplan to specify the location in the unit. Swipe to pan. Pinch or spread with two fingers to zoom. Tap an existing marker to remove it.
-                </div>
+            <div className='mt1'>
+              <div className='flex items-center'>
+                <MarkerIcon style={{ width: '12px', height: '17px' }} fillColor='var(--bondi-blue)' />
+                <div className='ml2 f6 b bondi-blue'>Pin on Floor plan</div>
               </div>
-            )}
+              <div className='mt3'>
+                <FloorPlanUploader unitMetaData={unitItem}>
+                  <div>
+                    <div className='w-100 ba b--gray-93'>
+                      <FloorPlanEditor
+                        pins={floorPlanPins}
+                        floorPlan={activeFloorPlan}
+                        onPinsChanged={pins => this.setState({ floorPlanPins: pins })}
+                        isEditing
+                        isMovable
+                      />
+                    </div>
+                    <div className='mt2 f7 gray lh-copy'>
+                      <span className='b'>Double tap</span> on the floorplan to specify the location in the unit. Swipe to pan. Pinch or spread with two fingers to zoom. Tap an existing marker to remove it.
+                    </div>
+                  </div>
+                </FloorPlanUploader>
+              </div>
+            </div>
 
             {rolesToRender.length === 1 && rolesToRender[0].areYouDefAssignee ? (
               <p className='f7 gray ma0 mt2'>
@@ -416,16 +420,22 @@ CaseWizard.propTypes = {
   preferredUnitId: PropTypes.string,
   reportItem: PropTypes.object,
   userId: PropTypes.string,
-  availableRoles: PropTypes.array
+  availableRoles: PropTypes.array,
+  floorPlanUploadProcess: PropTypes.object
 }
 
 export default withRouter(connect(
-  ({ caseCreationState: { inProgress, error } }, props) => {
+  ({ caseCreationState: { inProgress, error }, unitFloorPlanUploadState }, props) => {
     const { unit } = parseQueryString(props.location.search)
+    const { unit: unitId } = parseQueryString(props.location.search)
+    const unitMeta = UnitMetaData.findOne({ bzId: parseInt(unitId) })
+    const mongoId = unitMeta && unitMeta._id
+    const floorPlanUploadProcess = mongoId && unitFloorPlanUploadState.find(proc => proc.unitMongoId === mongoId)
     return {
       preferredUnitId: unit,
       inProgress,
-      error
+      error,
+      floorPlanUploadProcess
     }
   }
 )(createContainer(
@@ -443,6 +453,7 @@ export default withRouter(connect(
       .map(name => Meteor.subscribe(`${fieldValsCollName}.fetchByName`, name))
       .filter(handle => !handle.ready()).length > 0
     const loadingReport = !!reportHandle && !reportHandle.ready()
+
     return ({
       isLoading: loadingUnitInfo || loadingUserEmail || loadingFieldValues || loadingReport,
       unitItem: unitHandle.ready()

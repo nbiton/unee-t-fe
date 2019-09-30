@@ -23,6 +23,7 @@ import CaseTargetAttrDialog from '../dialogs/case-target-attr-dialog'
 import { changeFloorPlanPins } from '/imports/state/actions/case-floor-plan-pins.actions'
 import randToken from 'rand-token'
 import FloorPlanEditor from '../components/floor-plan-editor'
+import FloorPlanUploader from '../components/floor-plan-uploader'
 
 const mediaItemsPadding = 4 // Corresponds with the classNames set to the media items
 const mediaItemRowCount = 3
@@ -126,20 +127,26 @@ class CaseDetails extends Component {
   resolveFloorPlan = comments => {
     const { unitMetaData } = this.props
     const floorPlanComment = comments.slice().reverse().find(comment => floorPlanTextMatcher(comment.text))
-    if (!floorPlanComment) {
-      const floorPlan = unitMetaData.floorPlanUrls && unitMetaData.floorPlanUrls.slice(-1)[0]
-      this.setState({
-        floorPlanPins: [],
-        floorPlan
-      })
-    } else {
+    let activeFloorPlan, translatedPins
+    if (floorPlanComment) {
       const { id, pins } = floorPlanTextMatcher(floorPlanComment.text)
       const floorPlan = unitMetaData.floorPlanUrls && unitMetaData.floorPlanUrls.find(f => f.id === id)
-      const translatedPins = pins.map(pin => ({ x: pin[0], y: pin[1], id: randToken.generate(12) }))
+      activeFloorPlan = floorPlan && !floorPlan.disabled && floorPlan
+      translatedPins = pins.map(pin => ({ x: pin[0], y: pin[1], id: randToken.generate(12) }))
+    } else {
+      const floorPlan = unitMetaData.floorPlanUrls && unitMetaData.floorPlanUrls.slice(-1)[0]
+      activeFloorPlan = floorPlan && !floorPlan.disabled && floorPlan
+    }
+    if (!floorPlanComment || !activeFloorPlan) {
+      this.setState({
+        floorPlanPins: [],
+        floorPlan: activeFloorPlan
+      })
+    } else {
       this.setState({
         floorPlanPins: translatedPins,
         savedFloorPlanPins: translatedPins,
-        floorPlan
+        floorPlan: activeFloorPlan
       })
     }
   }
@@ -616,7 +623,7 @@ class CaseDetails extends Component {
         {this.renderStatusLine(caseItem, caseFieldValues)}
         {this.renderCategoriesLine(caseItem, caseFieldValues)}
         {this.renderPrioritySeverityLine(caseItem, caseFieldValues)}
-        {this.renderFloorPlan(floorPlan, floorPlanPins)}
+        {this.renderFloorPlan(floorPlan, floorPlanPins, unitItem)}
         {this.renderCreatedBy(caseUserTypes.creator)}
         {this.renderAssignedTo(
           caseUserTypes.assignee, normalizedUnitUsers, pendingInvitations, isUnitOwner, unitRoleType
@@ -637,7 +644,7 @@ class CaseDetails extends Component {
     dispatch(changeFloorPlanPins(caseItem.id, floorPlanPins, floorPlan.id))
   }
 
-  renderFloorPlan (floorPlan, pins) {
+  renderFloorPlan (floorPlan, pins, unitItem) {
     const { isEditingPins } = this.state
     return (
       <div className='bt bw3 b--light-gray ph3 pv2'>
@@ -645,26 +652,32 @@ class CaseDetails extends Component {
           <div className='flex-grow'>
             {infoItemLabel('Location on floor plan')}
           </div>
-          <a className='mt1 link f7 bondi-blue underline' onClick={() => {
-            const { savedFloorPlanPins, floorPlanPins } = this.state
-            if (isEditingPins && !isEqual(savedFloorPlanPins, floorPlanPins)) {
-              this.saveFloorPlanPins()
-            }
-            this.setState({ isEditingPins: !isEditingPins })
-          }}>
-            {isEditingPins
-              ? 'Save pins'
-              : pins.length ? 'Edit pins' : 'Add pins'}
-          </a>
+          {floorPlan && (
+            <a className='mt1 link f7 bondi-blue underline' onClick={() => {
+              const { savedFloorPlanPins, floorPlanPins } = this.state
+              if (isEditingPins && !isEqual(savedFloorPlanPins, floorPlanPins)) {
+                this.saveFloorPlanPins()
+              }
+              this.setState({ isEditingPins: !isEditingPins })
+            }}>
+              {isEditingPins
+                ? 'Save pins'
+                : pins.length ? 'Edit pins' : 'Add pins'}
+            </a>
+          )}
         </div>
-        <div className='mt1 ba b--gray-93'>
-          <FloorPlanEditor
-            isEditing={isEditingPins}
-            pins={pins}
-            floorPlan={floorPlan}
-            isMovable
-            onPinsChanged={pins => this.setState({ floorPlanPins: pins })}
-          />
+        <div className='mt1'>
+          <FloorPlanUploader unitMetaData={unitItem.metaData()}>
+            <div className='ba b--gray-93'>
+              <FloorPlanEditor
+                isEditing={isEditingPins}
+                pins={pins}
+                floorPlan={floorPlan}
+                isMovable
+                onPinsChanged={pins => this.setState({ floorPlanPins: pins })}
+              />
+            </div>
+          </FloorPlanUploader>
         </div>
       </div>
     )
