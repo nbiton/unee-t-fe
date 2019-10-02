@@ -9,9 +9,6 @@ USER node:node
 WORKDIR /src
 COPY --chown=node:node . .
 
-# Workaround https://github.com/CyCoreSystems/go-meteor/issues/6
-RUN meteor npm install --save postcss-easy-import
-
 RUN meteor npm install --production
 RUN meteor build --architecture os.linux.x86_64 --directory /bundle
 RUN cd /bundle/bundle/programs/server && npm install
