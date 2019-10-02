@@ -9,6 +9,8 @@ USER node:node
 WORKDIR /src
 COPY --chown=node:node . .
 
+RUN npm install
+
 RUN meteor npm install --production
 RUN meteor build --architecture os.linux.x86_64 --directory /bundle
 RUN cd /bundle/bundle/programs/server && npm install
