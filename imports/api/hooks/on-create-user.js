@@ -15,7 +15,7 @@ export function onCreateUser (options, user) {
   delete options.profile.bzPass
 
   if (promoCode) {
-    const promoCodeRecord = PromoCodes.findOne({ code: promoCode })
+    const promoCodeRecord = PromoCodes.findOne({ code: new RegExp(promoCode.toLowerCase(), 'i') })
     if (!promoCodeRecord) {
       throw new Meteor.Error('Promo code does not exist')
     } else if (promoCodeRecord.expiresOn && promoCodeRecord.expiresOn.getTime() < Date.now()) {
