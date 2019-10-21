@@ -10,6 +10,7 @@ import getPdfDownload from './get-pdf-download'
 import postProcessApiPayloadRequest from './post-process-api-payload-request'
 import getUnits from './get-units'
 import getCases from './get-cases'
+import getCase from './get-case'
 import postCases from './post-cases'
 import postOtpToken from './post-otp-token'
 
@@ -39,6 +40,7 @@ createRoute('post', '/db-change-message/process', postProcessDbChangeMessage)
 createRoute('post', '/ses', postSesNotification)
 createRoute('get', '/report-pdf-download', getPdfDownload)
 createRoute('get', '/units', getUnits)
+createRoute('get', '/cases/:id', getCase)
 createRoute('get', '/cases', getCases)
 createRoute('post', '/cases', postCases)
 createRoute('post', '/otp-token', postOtpToken)

@@ -13,6 +13,23 @@ import {
 import UnitMetaData from '../unit-meta-data'
 import UnitRolesData from '../unit-roles-data'
 
+export const caseAPIFields = [
+  'product',
+  'summary',
+  'id',
+  'assigned_to',
+  'creation_time',
+  'cf_ipi_clust_1_next_step',
+  'cf_ipi_clust_1_next_step_by',
+  'description',
+  'cf_ipi_clust_1_solution',
+  'deadline',
+  'cc',
+  'platform',
+  'cf_ipi_clust_6_claim_type',
+  'creator'
+]
+
 export default userApiKey((req, res) => {
   const { user, apiKeyDetails } = req
 
@@ -24,22 +41,7 @@ export default userApiKey((req, res) => {
   ]
   const queryPayload = caseQueryBuilder(
     queryExpressions,
-    [
-      'product',
-      'summary',
-      'id',
-      'assigned_to',
-      'creation_time',
-      'cf_ipi_clust_1_next_step',
-      'cf_ipi_clust_1_next_step_by',
-      'description',
-      'cf_ipi_clust_1_solution',
-      'deadline',
-      'cc',
-      'platform',
-      'cf_ipi_clust_6_claim_type',
-      'creator'
-    ]
+    caseAPIFields
   )
 
   let bugs
