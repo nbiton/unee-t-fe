@@ -9,9 +9,10 @@ import postSesNotification from './post-ses-notification'
 import getPdfDownload from './get-pdf-download'
 import postProcessApiPayloadRequest from './post-process-api-payload-request'
 import getUnits from './get-units'
-import getCases from './get-cases'
-import getCase from './get-case'
-import postCases from './post-cases'
+import getCases from './cases/get-cases'
+import getCase from './cases/get-case'
+import postCases from './cases/post-cases'
+import putCase from './cases/put-case'
 import postOtpToken from './post-otp-token'
 
 JsonRoutes.Middleware.use(json())
@@ -32,6 +33,10 @@ const createRoute = (method, url, handler) => {
   JsonRoutes.add(method, apiBase + url, handler)
 }
 
+const notFoundRoute = (req, res) => {
+  res.send(400, 'no resource is associated with the specified route')
+}
+
 createRoute('get', '/pending-invitations', getPendingInvitations)
 createRoute('get', '/invitations', getInvitations)
 createRoute('get', '/converted-invitations', getConvertedInvitations)
@@ -43,5 +48,16 @@ createRoute('get', '/units', getUnits)
 createRoute('get', '/cases/:id', getCase)
 createRoute('get', '/cases', getCases)
 createRoute('post', '/cases', postCases)
+createRoute('put', '/cases/:id', putCase)
 createRoute('post', '/otp-token', postOtpToken)
 createRoute('post', '/process-api-payload', postProcessApiPayloadRequest)
+
+// Catch all else routes for proper error presentation
+createRoute('get', '/:bla', notFoundRoute)
+createRoute('get', '/:bla/*', notFoundRoute)
+createRoute('post', '/:bla', notFoundRoute)
+createRoute('post', '/:bla/*', notFoundRoute)
+createRoute('put', '/:bla', notFoundRoute)
+createRoute('put', '/:bla/*', notFoundRoute)
+createRoute('delete', '/:bla', notFoundRoute)
+createRoute('delete', '/:bla/*', notFoundRoute)
