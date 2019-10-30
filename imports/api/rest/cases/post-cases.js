@@ -1,17 +1,17 @@
 // @flow
 import { Meteor } from 'meteor/meteor'
 import { Accounts } from 'meteor/accounts-base'
-import userApiKey, { bodyExtractor, headerExtractor, makeComposedExtractor } from './middleware/user-api-key-middleware'
+import userApiKey, { bodyExtractor, headerExtractor, makeComposedExtractor } from '../middleware/user-api-key-middleware'
 import { check, Match } from 'meteor/check'
-import { logger } from '../../util/logger'
-import { createCase } from '../cases'
-import { serverHelpers } from '../units'
-import UnitMetaData from '../unit-meta-data'
-import { addUserToRole, roleEnum } from '../unit-roles-data'
-import { emailValidator } from '../../util/validators'
+import { logger } from '../../../util/logger'
+import { createCase } from '../../cases'
+import { serverHelpers } from '../../units'
+import UnitMetaData from '../../unit-meta-data'
+import { addUserToRole, roleEnum } from '../../unit-roles-data'
+import { emailValidator } from '../../../util/validators'
 
-import type { Request, Response } from './rest-types'
-import { KEEP_DEFAULT } from '../pending-invitations'
+import type { Request, Response } from '../rest-types'
+import { KEEP_DEFAULT } from '../../pending-invitations'
 
 const assigneeAllowedRoles = Object.values(roleEnum).filter(val => val !== roleEnum.CONTRACTOR)
 const reporterAllowedRoles = Object.values(roleEnum)
