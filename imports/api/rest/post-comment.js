@@ -57,7 +57,6 @@ export default userApiKey((req: Request, res: Response) => {
     // Digging the new comment object out of the response
     const newComment = commentData.data.comments[createData.data.id.toString()]
     publicationObj.handleAdded(newComment)
-
   } catch (e) {
     logger.warn('Live comment update failed due to "' + e.message + '". Proceeding with no error')
   }
