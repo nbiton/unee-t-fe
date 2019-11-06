@@ -12,6 +12,7 @@ import getUnits from './get-units'
 import getCases from './cases/get-cases'
 import getCase from './cases/get-case'
 import postCases from './cases/post-cases'
+import postComment from './post-comment'
 import putCase from './cases/put-case'
 import postOtpToken from './post-otp-token'
 
@@ -49,6 +50,7 @@ createRoute('get', '/cases/:id', getCase)
 createRoute('get', '/cases', getCases)
 createRoute('post', '/cases', postCases)
 createRoute('put', '/cases/:id', putCase)
+createRoute('post', '/cases/:caseId/comments', postComment)
 createRoute('post', '/otp-token', postOtpToken)
 createRoute('post', '/process-api-payload', postProcessApiPayloadRequest)
 
