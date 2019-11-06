@@ -86,7 +86,7 @@ export default userApiKey((req: Request, res: Response) => {
     res.send(500, e.message)
     return
   }
-
+  caseItem.details = commentList[0].text
   res.send(200, {
     ...caseItem,
     comments: commentList

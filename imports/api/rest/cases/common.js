@@ -25,14 +25,16 @@ export const caseAPIFields = [
   'assigned_to',
   'creation_time',
   'cf_ipi_clust_1_next_step',
-  'cf_ipi_clust_1_next_step_by',
+  'cf_ipi_clust_1_next_step_date',
   'description',
   'cf_ipi_clust_1_solution',
   'deadline',
   'cc',
   'platform',
   'cf_ipi_clust_6_claim_type',
-  'creator'
+  'creator',
+  'priority',
+  'bug_severity'
 ]
 
 export const makeUserAPIObjGenerator = (unitMongoId: string) => {
