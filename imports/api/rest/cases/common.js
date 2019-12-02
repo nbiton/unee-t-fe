@@ -1,7 +1,10 @@
 // @flow
 import { Meteor } from 'meteor/meteor'
-import UnitRolesData from '../../unit-roles-data'
-import { transformCaseForClient } from '../../cases'
+import UnitRolesData, { addUserToRole, roleEnum } from '../../unit-roles-data'
+import { factoryOptions, idUrlTemplate, transformCaseForClient } from '../../cases'
+import { Accounts } from 'meteor/accounts-base'
+import { KEEP_DEFAULT } from '../../pending-invitations'
+import { callAPI } from '../../../util/bugzilla-api'
 
 type UserDoc = {
   _id: string,
@@ -18,6 +21,13 @@ type UserTransformer = (user: UserDoc) => {
   name?: string,
   role?: ?string
 }
+
+type UnitMeta = {
+  _id: string,
+  bzId: string,
+  ownerIds: Array<string>
+}
+
 export const caseAPIFields = [
   'product',
   'summary',
@@ -100,4 +110,63 @@ export const tranformCaseAPIObj = (bug: any, thisUser: { _id: string }, transfor
     creationTime,
     ...transformCaseForClient(relevantBugFields)
   }
+}
+
+export const attemptUserGeneration = (newUserEmail: string, creator: UserDoc) => {
+  const existingUser = Accounts.findUserByEmail(newUserEmail)
+  if (existingUser) {
+    // logger.warn(`Creating user by alias ID '${newUserEmail}' failed, another user with this email address already exists`)
+    return existingUser
+  }
+  const userId = Accounts.createUser({
+    email: newUserEmail,
+    profile: {
+      isLimited: true,
+      creatorId: creator._id
+    }
+  })
+
+  Meteor.users.update({ _id: userId }, {
+    $set: {
+      'emails.0.verified': true,
+      apiAliases: {
+        userId: creator._id,
+        id: newUserEmail
+      }
+    }
+  })
+
+  return Meteor.users.findOne({ _id: userId })
+}
+
+export const verifyRole = (
+  invitor: UserDoc,
+  invitee: UserDoc,
+  unitMetaData: UnitMeta,
+  designatedRole: string,
+  errorLogParams: {}
+) => {
+  const existingAssigneeRole = UnitRolesData.findOne({ 'members.id': invitee._id, unitId: unitMetaData._id })
+  if (!existingAssigneeRole) {
+    if (!unitMetaData.ownerIds.includes(invitor._id)) {
+      throw new Meteor.Error('The specified user doesn\'t have a role in this unit, and you are not allowed to invite it', 'client error')
+    }
+    if (!designatedRole) {
+      throw new Meteor.Error('You must provide a role for the user, so it can be permitted access to this unit', 'client error')
+    }
+
+    try {
+      addUserToRole(invitor, invitee, unitMetaData.bzId, designatedRole, KEEP_DEFAULT, false, errorLogParams)
+    } catch (e) {
+      throw new Meteor.Error(e.message, 'server error')
+    }
+  }
+}
+
+export const assigneeAllowedRoles:Array<mixed> = Object.values(roleEnum).filter(val => val !== roleEnum.CONTRACTOR)
+export const isDateString = (str:string) => typeof str === 'string' && !isNaN((new Date(str)).getTime())
+
+export const getCaseById = (id:number) => {
+  const resp = callAPI('get', idUrlTemplate(id), { api_key: process.env.BUGZILLA_ADMIN_KEY }, false, true)
+  return factoryOptions.dataResolver(resp.data)[0]
 }
